@@ -23,8 +23,12 @@ def remove_duplicates(paragraph_citations):
 
 def load_document(case_citation, mapping):
     file_path = mapping.get(case_citation)
-    with open('data/raw/files/' + file_path, 'r') as file:
-        return json.load(file)
+    if file_path is None:
+        print(f'No file for citation : {case_citation}')
+        return None
+    else :
+        with open('data/raw/files/' + file_path, 'r') as file:
+            return json.load(file)
 
 
 def load_mappings():

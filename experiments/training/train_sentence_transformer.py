@@ -42,7 +42,10 @@ def load_custom_dataset(tsv_file, citation_mapping):
     # Replace citations with actual content using the mapping
     def map_citation(citation):
         document = load_document(citation, citation_mapping)
-        return '\n'.join(document['full_text'])
+        if document is not None:
+            return '\n'.join(document['full_text'])
+        else:
+            return ''
 
     data['anchor'] = data['anchor'].map(map_citation)
     data['positive'] = data['positive'].map(map_citation)
