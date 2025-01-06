@@ -125,7 +125,7 @@ def run(arguments):
     test_evaluator(model)
 
     # 8. Save the trained model
-    model.save_pretrained("models/mpnet-base-all-nli-triplet/final")
+    model.save_pretrained(arguments.save_path)
 
 
 if __name__ == '__main__':
@@ -135,6 +135,8 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=4, required=False, help='batch_size')
     parser.add_argument('--epochs', type=int, default=1, required=False, help='epochs')
     parser.add_argument('--learning_rate', type=float, default=2e-5, required=False, help='learning_rate')
+    parser.add_argument('--save_path', type=str, default='models/uk-case-retrieval', required=False,
+                        help='model save path')
     args = parser.parse_args()
     run(args)
     run(args)
