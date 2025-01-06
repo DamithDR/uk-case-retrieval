@@ -13,7 +13,7 @@ def run():
 
     for file in tqdm(files):
         if file.endswith('.json'):
-            with open(files_path + "/" + file, 'r') as f:
+            with open(files_path + "/" + file, 'r',encoding='utf-8') as f:
                 case = json.load(f)
                 case_mapping[case['neutral_citation']] = file
 

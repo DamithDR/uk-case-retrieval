@@ -34,21 +34,23 @@ from sentence_transformers.training_args import BatchSamplers, SentenceTransform
 from util.retrieval_utils import load_document, load_mappings
 
 
+# Replace citations with actual content using the mapping
+def map_citation(citation, citation_mapping):
+    document = load_document(citation, citation_mapping)
+    return '\n'.join(document['full_text'])
+
+
 # Load the TSV file
 def load_custom_dataset(tsv_file, citation_mapping):
     # Read the TSV file into a pandas DataFrame
     data = pd.read_csv(tsv_file, sep="\t")
-
-    # Replace citations with actual content using the mapping
-    def map_citation(citation):
-        document = load_document(citation, citation_mapping)
-        if document is not None:
-            return '\n'.join(document['full_text'])
-        else:
-            return ''
+    data = data.dropna()
 
     data['anchor'] = data['anchor'].map(map_citation)
     data['positive'] = data['positive'].map(map_citation)
+
+    # for col in ['anchor', 'positive']:
+    #     data[col] = [map_citation(value, citation_mapping) for value in data[col]]
 
     dataset = Dataset.from_pandas(data)
 
