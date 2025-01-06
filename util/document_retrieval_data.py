@@ -33,7 +33,8 @@ def create_data_permutations(annotation_file, save_name):
             source_citation = document['case']
             citations = document['citations']
             for citation in citations:
-                dataset.append({'anchor': source_citation, 'positive': citation})
+                if citation in mapping:
+                    dataset.append({'anchor': source_citation, 'positive': citation})
     df = pd.DataFrame(dataset)
     df.to_csv('data/document_retrieval_data/' + save_name, sep='\t', index=False)
 
@@ -49,4 +50,5 @@ def run():
 
 
 if __name__ == '__main__':
+    mapping = load_mappings()
     run()
