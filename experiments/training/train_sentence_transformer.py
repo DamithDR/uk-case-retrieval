@@ -46,11 +46,11 @@ def load_custom_dataset(tsv_file, citation_mapping):
     data = pd.read_csv(tsv_file, sep="\t")
     data = data.dropna()
 
-    data['anchor'] = data['anchor'].map(map_citation)
-    data['positive'] = data['positive'].map(map_citation)
+    # data['anchor'] = data['anchor'].map(map_citation)
+    # data['positive'] = data['positive'].map(map_citation)
 
-    # for col in ['anchor', 'positive']:
-    #     data[col] = [map_citation(value, citation_mapping) for value in data[col]]
+    for col in ['anchor', 'positive']:
+        data[col] = [map_citation(value, citation_mapping) for value in data[col]]
 
     dataset = Dataset.from_pandas(data)
 
