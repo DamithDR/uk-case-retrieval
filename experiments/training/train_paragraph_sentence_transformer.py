@@ -128,11 +128,11 @@ def run():
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=200,
+        eval_steps=100,
         save_strategy="steps",
-        save_steps=200,
+        save_steps=100,
         save_total_limit=2,
-        logging_steps=100,
+        logging_steps=50,
         run_name=f"document_retrieval_uk_{model_path}",  # Will be used in W&B if `wandb` is installed
     )
 

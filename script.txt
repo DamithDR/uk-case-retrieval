@@ -1,2 +1,2 @@
 python -m experiments.training.train_sentence_transformer --model_name nomic-ai/modernbert-embed-base --batch_size 64
-python -m experiments.training.train_paragraph_sentence_transformer --model_name nlpaueb/legal-bert-base-uncased --batch_size 8
+python -m experiments.training.train_paragraph_sentence_transformer --model_name nlpaueb/legal-bert-base-uncased --batch_size 8 --epochs 3
