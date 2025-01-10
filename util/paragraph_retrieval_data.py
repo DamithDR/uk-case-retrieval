@@ -2,7 +2,16 @@ import json
 
 import pandas as pd
 
-from util.retrieval_utils import load_mappings
+from util.retrieval_utils import load_mappings, load_document
+
+
+def paragraph_retrievable(citation, paragraph):
+    document = load_document(citation, mapping)
+    paragraph_num_combinations = [paragraph, paragraph + '.', '(' + paragraph + ')']
+    for seq in document['sequence']:
+        if seq in paragraph_num_combinations:
+            return True
+    return False
 
 
 def create_data_permutations(annotation_file, save_name):
@@ -16,10 +25,12 @@ def create_data_permutations(annotation_file, save_name):
             for citation in para_citations:
                 if citation['citation']['citation'] in mapping.keys() and len(
                         citation['citation']['paragraphs']) > 0:
-                    local_source_citation = source_citation + "#" + citation["para"]
+                    local_source_citation = source_citation.replace('\n','').strip() + "#" + citation["para"]
                     for paragraph in citation['citation']['paragraphs']:
-                        local_destination_citation = citation['citation']['citation'] + "#" + str(paragraph) + "."
-                        dataset.append({'anchor': local_source_citation, 'positive': local_destination_citation})
+
+                        if paragraph_retrievable(citation['citation']['citation'], str(paragraph)):
+                            local_destination_citation = citation['citation']['citation'].replace('\n','').strip() + "#" + str(paragraph)
+                            dataset.append({'anchor': local_source_citation, 'positive': local_destination_citation})
     df = pd.DataFrame(dataset)
     df.to_csv('data/paragraph_retrieval_data/' + save_name, sep='\t', index=False)
 
