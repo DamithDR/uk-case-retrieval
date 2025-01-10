@@ -158,6 +158,7 @@ def run():
     trainer.train()
 
     # (Optional) Evaluate the trained model on the test set
+    scores = [1.0] * len(test_dataset["anchor"])
     test_evaluator = EmbeddingSimilarityEvaluator(
         sentences1=test_dataset["anchor"],
         sentences2=test_dataset["positive"],
@@ -176,7 +177,7 @@ if __name__ == '__main__':
         description='''sentence transformer arguments''')
     parser.add_argument('--model_name', type=str, required=True, help='model_name')
     parser.add_argument('--batch_size', type=int, default=4, required=False, help='batch_size')
-    parser.add_argument('--epochs', type=int, default=1, required=False, help='epochs')
+    parser.add_argument('--epochs', type=int, default=3, required=False, help='epochs')
     parser.add_argument('--learning_rate', type=float, default=2e-5, required=False, help='learning_rate')
     parser.add_argument('--save_path', type=str, default='models/uk-case-retrieval', required=False,
                         help='model save path')
