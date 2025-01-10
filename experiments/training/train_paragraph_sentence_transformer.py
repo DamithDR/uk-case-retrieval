@@ -25,9 +25,9 @@ from util.retrieval_utils import load_document, load_mappings
 
 # Replace citations with actual content using the mapping
 def map_paragraph(citation):
-    citation = citation.split('#')[0]
+    cite = citation.split('#')[0]
     para = citation.split('#')[1]
-    document = load_document(citation, mappings)
+    document = load_document(cite, mappings)
 
     paragraph = document['paragraphs'][para]
 
