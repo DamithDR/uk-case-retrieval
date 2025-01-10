@@ -29,13 +29,16 @@ def map_paragraph(citation):
     para = citation.split('#')[1]
     document = load_document(cite, mappings)
 
-    paragraph = document['paragraphs'][para]
+    paragraph = document['paragraphs'][para]['paragraph']
 
     return paragraph
 
 
 # Load the TSV file
 def if_lexically_similar(anchor_para, positive_para):
+
+    print(anchor_para)
+    print(positive_para)
     anchor_para_words = set(anchor_para.split(' '))
     positive_para_words = set(positive_para.split(' '))
 
