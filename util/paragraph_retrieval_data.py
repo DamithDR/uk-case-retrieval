@@ -2,43 +2,38 @@ import json
 
 import pandas as pd
 
-from util.retrieval_utils import filter_paragraph_citations, remove_duplicates, load_document
+from util.retrieval_utils import load_mappings
 
 
-def create_data_split(annotation_file, mapping):
-
+def create_data_permutations(annotation_file, save_name):
     dataset = []
 
     with open(annotation_file, 'r') as file:
         annotation = json.load(file)
         for document in annotation:
-            paragraph_citations = filter_paragraph_citations(document)
-            paragraph_citations = remove_duplicates(paragraph_citations)
-
-            source_document = load_document(document['case'], mapping)
-            source_document_text = '\n'.join(source_document['full_text'])
-            for citation in paragraph_citations:
-                reference_document = load_document(citation['citation'], mapping)
-                for paragraph_number in citation['paragraphs']:
-                    paragraph_key = paragraph_number + '.'
-                    if paragraph_key in source_document['sequence']:
-                        reference_paragraph = source_document['paragraphs'][paragraph_key]
-                        dataset.append({'source':source_document_text,'reference':reference_paragraph,'score':1})
-
-def load_mappings():
-    with open('data/mapping/mapping.json', 'r') as file:
-        return json.load(file)
+            source_citation = document['case']
+            para_citations = document['paragraph_citations']
+            for citation in para_citations:
+                if citation['citation']['citation'] in mapping.keys() and len(
+                        citation['citation']['paragraphs']) > 0:
+                    local_source_citation = source_citation + "#" + citation["para"]
+                    for paragraph in citation['citation']['paragraphs']:
+                        local_destination_citation = citation['citation']['citation'] + "#" + str(paragraph) + "."
+                        dataset.append({'anchor': local_source_citation, 'positive': local_destination_citation})
+    df = pd.DataFrame(dataset)
+    df.to_csv('data/paragraph_retrieval_data/' + save_name, sep='\t', index=False)
 
 
 def run():
-    mapping = load_mappings()
-
     train_data = 'data/annotation/training.json'
     dev_data = 'data/annotation/dev.json'
     test_data = 'data/annotation/test.json'
 
-    create_data_split(train_data, mapping)
+    create_data_permutations(train_data, 'p_ret_training.tsv')
+    create_data_permutations(dev_data, 'p_ret_dev.tsv')
+    create_data_permutations(test_data, 'p_ret_test.tsv')
 
 
 if __name__ == '__main__':
+    mapping = load_mappings()
     run()

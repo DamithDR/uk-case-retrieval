@@ -1,4 +1,3 @@
-
 import argparse
 import logging
 import random
@@ -7,6 +6,7 @@ from datetime import datetime
 
 import pandas as pd
 from datasets import load_dataset, Dataset
+from pandas.core.interchange.dataframe_protocol import DataFrame
 
 from sentence_transformers import SentenceTransformer, InputExample
 from sentence_transformers.evaluation import (
@@ -24,39 +24,71 @@ from util.retrieval_utils import load_document, load_mappings
 
 
 # Replace citations with actual content using the mapping
-def map_citation(citation, citation_mapping):
-    document = load_document(citation, citation_mapping)
-    return '\n'.join(document['full_text'])
+def map_paragraph(citation):
+    citation = citation.split('#')[0]
+    para = citation.split('#')[1]
+    document = load_document(citation, mappings)
+
+    paragraph = document['paragraphs'][para]
+
+    return paragraph
 
 
 # Load the TSV file
-def load_custom_dataset(tsv_file, citation_mapping):
+def if_lexically_similar(anchor_para, positive_para):
+    anchor_para_words = set(anchor_para.split(' '))
+    positive_para_words = set(positive_para.split(' '))
+
+    common_words = anchor_para_words.intersection(positive_para_words)
+
+    similarity_ratio = len(common_words) / len(anchor_para_words)
+
+    return similarity_ratio >= 0.8
+
+
+def map_paragraphs(anchor, positive):
+    anchor_para = map_paragraph(anchor)
+    positive_para = map_paragraph(positive)
+
+    if not if_lexically_similar(anchor_para, positive_para):
+        return anchor_para, positive_para
+    else:  # get the previous para if the content are same
+        print(f"same content detected {anchor_para} | {positive_para}")
+        source_para_num = int(anchor.split('#')[1].replace('.', ''))
+        source_para_num -= 1
+        if source_para_num >= 1:
+            anchor = anchor.split('#')[0] + "#" + str(source_para_num) + '.'
+            anchor_para = map_paragraph(anchor)
+        return anchor_para, positive_para
+
+
+def load_paragraph_dataset(tsv_file):
     # Read the TSV file into a pandas DataFrame
     data = pd.read_csv(tsv_file, sep="\t")
     data = data.dropna()
 
-    # data['anchor'] = data['anchor'].map(map_citation)
-    # data['positive'] = data['positive'].map(map_citation)
-
-    for col in ['anchor', 'positive']:
-        data[col] = [map_citation(value, citation_mapping) for value in data[col]]
-
-    dataset = Dataset.from_pandas(data)
+    anchor_list = []
+    positive_list = []
+    for anchor, positive in zip(data['anchor'], data['positive']):
+        anchor_para, positive_para = map_paragraphs(anchor, positive)
+        anchor_list.append(anchor_para)
+        positive_list.append(positive_para)
+    df = pd.DataFrame({'anchor': anchor_list, 'positive': positive_list})
+    dataset = Dataset.from_pandas(df)
 
     return dataset
 
 
-def run(arguments):
+def run():
     # Set the log level to INFO to get more information
     logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
-    mappings = load_mappings()
 
-    train_data_path = 'data/document_retrieval_data/d_ret_training.tsv'
-    dev_data_path = 'data/document_retrieval_data/d_ret_dev.tsv'
-    test_data_path = 'data/document_retrieval_data/d_ret_test.tsv'
-    train_dataset = load_custom_dataset(train_data_path, mappings)
-    eval_dataset = load_custom_dataset(dev_data_path, mappings)
-    test_dataset = load_custom_dataset(test_data_path, mappings)
+    train_data_path = 'data/paragraph_retrieval_data/p_ret_training.tsv'
+    dev_data_path = 'data/paragraph_retrieval_data/p_ret_dev.tsv'
+    test_data_path = 'data/paragraph_retrieval_data/p_ret_test.tsv'
+    train_dataset = load_paragraph_dataset(train_data_path)
+    eval_dataset = load_paragraph_dataset(dev_data_path)
+    test_dataset = load_paragraph_dataset(test_data_path)
 
     model = SentenceTransformer(
         arguments.model_name
@@ -64,10 +96,11 @@ def run(arguments):
     # 4. Define a loss function
     loss = MultipleNegativesRankingLoss(model)
 
+    model_path = arguments.model_name.replace('/','_')
     # 5. (Optional) Specify training arguments
     args = SentenceTransformerTrainingArguments(
         # Required parameter:
-        output_dir="models/mpnet-base-all-nli-triplet",
+        output_dir=f"outputs/{model_path}",
         # Optional training parameters:
         num_train_epochs=arguments.epochs,
         per_device_train_batch_size=arguments.batch_size,
@@ -80,12 +113,12 @@ def run(arguments):
         # MultipleNegativesRankingLoss benefits from no duplicate samples in a batch
         # Optional tracking/debugging parameters:
         eval_strategy="steps",
-        eval_steps=100,
+        eval_steps=200,
         save_strategy="steps",
-        save_steps=100,
+        save_steps=200,
         save_total_limit=2,
         logging_steps=100,
-        run_name="document_retrieval_uk",  # Will be used in W&B if `wandb` is installed
+        run_name=f"document_retrieval_uk_{model_path}",  # Will be used in W&B if `wandb` is installed
     )
 
     scores = [1.0] * len(eval_dataset["anchor"])  # All pairs have maximum similarity (score 1.0)
@@ -123,6 +156,7 @@ def run(arguments):
 
 
 if __name__ == '__main__':
+    mappings = load_mappings()
     parser = argparse.ArgumentParser(
         description='''sentence transformer arguments''')
     parser.add_argument('--model_name', type=str, required=True, help='model_name')
@@ -131,6 +165,5 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=2e-5, required=False, help='learning_rate')
     parser.add_argument('--save_path', type=str, default='models/uk-case-retrieval', required=False,
                         help='model save path')
-    args = parser.parse_args()
-    run(args)
-    run(args)
+    arguments = parser.parse_args()
+    run()

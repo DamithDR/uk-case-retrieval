@@ -15,7 +15,7 @@ def run():
         if file.endswith('.json'):
             with open(files_path + "/" + file, 'r',encoding='utf-8') as f:
                 case = json.load(f)
-                case_mapping[case['neutral_citation']] = file
+                case_mapping[case['neutral_citation'].replace('\n','').strip()] = file
 
     print(f'total mappings : {len(case_mapping.keys())}')
     with open('data/mapping/mapping.json', 'w', encoding='utf-8') as f:
