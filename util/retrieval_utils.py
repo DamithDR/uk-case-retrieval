@@ -38,7 +38,11 @@ def load_mappings():
     with open('data/mapping/mapping.json', 'r') as file:
         return json.load(file)
 
+
 def map_paragraph(citation):
+    split = citation.split('#')
+    if len(split) < 2:
+        print(citation)
     cite = citation.split('#')[0]
     para = citation.split('#')[1]
     mappings = load_mappings()
@@ -67,7 +71,7 @@ def if_lexically_similar(anchor_para, positive_para):
 
 def get_prev_para_num(anchor):
     source_para_num = anchor.split('#')[1]
-    source_para_num = source_para_num.replace('.', '').replace('(', '').replace(')', '').replace('“','')
+    source_para_num = source_para_num.replace('.', '').replace('(', '').replace(')', '').replace('“', '')
     source_para_num = int(source_para_num)
     source_para_num -= 1
     return source_para_num
