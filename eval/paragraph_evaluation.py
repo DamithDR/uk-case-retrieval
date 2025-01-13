@@ -2,6 +2,7 @@ import argparse
 import os
 
 import numpy as np
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 from util.eval_utils import sort_by_numbers_desc, f1_at_k, precision_at_k, recall_at_k, mean_average_precision
@@ -11,7 +12,7 @@ from util.retrieval_utils import load_paragraph_dataset, map_paragraph
 def remove_query_from_tests(query):
     keys = []
     embeddings = []
-    for candidate, candidate_embedding in zip(candidates, candidate_embeddings):
+    for candidate, candidate_embedding in zip(test_dataset['positive'], candidate_embeddings):
         if candidate != query:
             keys.append(candidate)
             embeddings.append(candidate_embedding)
@@ -104,8 +105,10 @@ if __name__ == '__main__':
     model = SentenceTransformer(args.model_path)
 
     test_data_path = 'data/paragraph_retrieval_data/p_ret_test.tsv'
-    test_dataset = load_paragraph_dataset(test_data_path)
-    candidates = test_dataset['positive']
-    candidate_paras = [map_paragraph(candidate) for candidate in candidates]
+    data = pd.read_csv(test_data_path, sep="\t")
+    test_dataset = data.dropna()
+    dataset = load_paragraph_dataset(test_data_path)
+    candidate_paras = dataset['positive']
+    # candidate_paras = [map_paragraph(candidate) for candidate in candidates]
     candidate_embeddings = model.encode(candidate_paras)
     run()
