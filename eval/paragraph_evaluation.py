@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from transformers.utils.import_utils import candidates
 
 from util.eval_utils import sort_by_numbers_desc, f1_at_k, precision_at_k, recall_at_k, mean_average_precision
 from util.retrieval_utils import load_paragraph_dataset, map_paragraph
