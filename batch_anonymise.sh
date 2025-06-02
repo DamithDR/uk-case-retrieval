@@ -4,6 +4,8 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=${SLURM_EMAIL}
 
+set -x
+
 source venv/bin/activate
 
 python -m util.anonymise_parallel
