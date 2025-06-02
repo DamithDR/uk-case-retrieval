@@ -53,11 +53,11 @@ if __name__ == '__main__':
     os.makedirs(anon_path, exist_ok=True)
 
     files = [f for f in os.listdir(files_path) if f.endswith('.json')]
-
+    workers = 50
     # Initialize shared nlp pool
-    init_nlp_pool(size=4)
+    init_nlp_pool(size=workers)
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=workers) as executor:
         futures = []
         for file in files:
             file_path = os.path.join(files_path, file)
