@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     files = [f for f in os.listdir(files_path) if f.endswith('.json')]
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         futures = []
         for file in files:
             file_path = os.path.join(files_path, file)
