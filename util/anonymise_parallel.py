@@ -2,67 +2,53 @@ import json
 import os
 import spacy
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from queue import Queue
+from multiprocessing import Pool, cpu_count
 
-# Initialize global queue to hold 4 nlp instances
-NLP_POOL = Queue()
+# GLOBAL variable for each process
+nlp = None
 
-def init_nlp_pool(size=4):
-    for _ in range(size):
-        NLP_POOL.put(spacy.load("en_core_web_sm"))
+def init_process():
+    global nlp
+    nlp = spacy.load("en_core_web_sm")
 
-def anonymize_names_thread(file_path, output_path):
-    # Get an nlp instance from the pool
-    nlp = NLP_POOL.get()
+def anonymize_file(file_info):
+    global nlp
+    file_path, output_path = file_info
 
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            case = json.load(f)
+    with open(file_path, 'r', encoding='utf-8') as f:
+        case = json.load(f)
 
-        sequence = case['sequence']
-        anon_full_text = []
+    sequence = case['sequence']
+    anon_full_text = []
 
-        for number in sequence:
-            original_text = case['paragraphs'][number]['paragraph']
-            doc = nlp(original_text)
+    for number in sequence:
+        original_text = case['paragraphs'][number]['paragraph']
+        doc = nlp(original_text)
 
-            anonymized_text = original_text
-            for ent in doc.ents:
-                if ent.label_ == "PERSON":
-                    anonymized_text = anonymized_text.replace(ent.text, "[PERSON]")
-            case['paragraphs'][number]['paragraph'] = anonymized_text
-            anon_full_text.append(anonymized_text)
+        anonymized_text = original_text
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                anonymized_text = anonymized_text.replace(ent.text, "[PERSON]")
+        case['paragraphs'][number]['paragraph'] = anonymized_text
+        anon_full_text.append(anonymized_text)
 
-        case['full_text'] = anon_full_text
+    case['full_text'] = anon_full_text
 
-        with open(output_path, "w", encoding="utf-8") as fr:
-            json.dump(case, fr, ensure_ascii=False, indent=4)
+    with open(output_path, "w", encoding="utf-8") as fr:
+        json.dump(case, fr, ensure_ascii=False, indent=4)
 
-        return file_path
-
-    finally:
-        # Return nlp instance back to the pool
-        NLP_POOL.put(nlp)
-
+    return output_path
 
 if __name__ == '__main__':
     files_path = 'data/raw/files'
     anon_path = 'data/raw/anonymised'
-
     os.makedirs(anon_path, exist_ok=True)
 
-    files = [f for f in os.listdir(files_path) if f.endswith('.json')]
-    workers = 4
-    # Initialize shared nlp pool
-    init_nlp_pool(size=workers)
+    file_list = [
+        (os.path.join(files_path, f), os.path.join(anon_path, f))
+        for f in os.listdir(files_path) if f.endswith('.json')
+    ]
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = []
-        for file in files:
-            file_path = os.path.join(files_path, file)
-            output_path = os.path.join(anon_path, file)
-            futures.append(executor.submit(anonymize_names_thread, file_path, output_path))
-
-        for future in tqdm(as_completed(futures), total=len(futures)):
-            future.result()
+    with Pool(processes=4, initializer=init_process) as pool:
+        for _ in tqdm(pool.imap_unordered(anonymize_file, file_list), total=len(file_list)):
+            pass
