@@ -8,4 +8,4 @@ set -x
 
 source venv/bin/activate
 
-python -m util.anonymise_parallel
+python3 -m util.anonymise_parallel
