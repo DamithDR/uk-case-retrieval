@@ -23,7 +23,7 @@ test = 'test.json'
 
 
 # Helper functions
-def load_json(file_path, base_path='data/raw/files/'):
+def load_json(file_path, base_path='data/raw/anonymised/'):
     with open(base_path + file_path, 'r') as f:
         return json.load(f)
 
@@ -71,7 +71,7 @@ def get_avg_tokens_per_document(file_path, citation_map):
         for citation in obj.get("citations", []):
             if citation in citation_map:
                 citation_file = citation_map[citation]
-                if os.path.exists('data/raw/files/' + citation_file):
+                if os.path.exists('data/raw/anonymised/' + citation_file):
                     cited_data = load_json(citation_file)
                     for para_key in cited_data.get("sequence", []):
                         para_content = cited_data["paragraphs"].get(para_key, {}).get("paragraph", "")
