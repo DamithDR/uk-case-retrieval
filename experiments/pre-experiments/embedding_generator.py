@@ -45,7 +45,6 @@ def generate_embedding(paragraph):
     return mean_embedding.squeeze().cpu().numpy()  # Shape: (hidden_dim,)
 
 
-
 def encode_long_paragraph(paragraph, max_length=512, stride=256):
     tokens = tokenizer(paragraph, return_tensors="pt", add_special_tokens=False)["input_ids"][0]
     chunk_embeddings = []
@@ -72,11 +71,12 @@ def load_file_and_gen(file_name):
     with open(file_path, 'r') as f:
         case_to_embedd = json.load(f)
         paragraph_keys = case_to_embedd['paragraphs'].keys()
-        file_wise_embedding = [encode_long_paragraph(case_to_embedd['paragraphs'][p]) if len(
-            tokenizer.encode(case_to_embedd['paragraphs'][p])) > 512 else
-                      generate_embedding([p])[0]
-                      for p in tqdm(paragraph_keys)]
+        file_wise_embedding = [encode_long_paragraph(case_to_embedd['paragraphs'][p]['paragraph']) if len(
+            tokenizer.encode(case_to_embedd['paragraphs'][p]['paragraph'])) > 512 else generate_embedding(
+            case_to_embedd['paragraphs'][p]['paragraph']) for p in
+                               tqdm(paragraph_keys)]
         np.save(f"embeddings/{file_name}.npy", file_wise_embedding)
+
 
 if __name__ == '__main__':
     model_name = 'nlpaueb/legal-bert-base-uncased'  # parameterise
@@ -96,7 +96,3 @@ if __name__ == '__main__':
 
             for cited_file in [mapping[cited] for cited in cited_documents]:
                 load_file_and_gen(cited_file)
-
-
-
-
