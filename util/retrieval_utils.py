@@ -30,7 +30,7 @@ def load_document(case_citation, mapping):
         print(f'No file for citation : {case_citation}')
         return None
     else:
-        with open('data/raw/files/' + file_path, 'r', encoding='utf-8') as file:
+        with open('data/raw/anonymised/' + file_path, 'r', encoding='utf-8') as file:
             return json.load(file)
 
 
