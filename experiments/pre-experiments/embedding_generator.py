@@ -18,47 +18,32 @@ def load_model(model_name):
     return m, t
 
 
-def generate_embeddings(paragraphs, batch_size=16):
-    embeddings = []
+def generate_embedding(paragraph):
+    # Tokenize single paragraph
+    inputs = tokenizer(
+        paragraph,
+        padding=True,
+        truncation=True,
+        max_length=512,
+        return_tensors="pt"
+    )
 
-    # Process paragraphs in batches
-    for i in tqdm(range(0, len(paragraphs), batch_size), desc="Generating embeddings"):
-        batch = paragraphs[i:i + batch_size]
+    # Move inputs to device
+    inputs = {key: val.to(device) for key, val in inputs.items()}
 
-        # Tokenize batch
-        inputs = tokenizer(
-            batch,
-            padding=True,  # Pad to longest in batch
-            truncation=True,  # Truncate to 512 tokens
-            max_length=512,
-            return_tensors="pt"
-        )
+    # Compute embeddings without gradient
+    with torch.no_grad():
+        outputs = model(**inputs)
 
-        # Move inputs to GPU/CPU
-        inputs = {key: val.to(device) for key, val in inputs.items()}
+    # Mean pooling (excluding padding)
+    attention_mask = inputs["attention_mask"]
+    hidden_states = outputs.last_hidden_state  # Shape: (1, seq_len, hidden_dim)
+    masked_sum = (hidden_states * attention_mask.unsqueeze(-1)).sum(dim=1)
+    token_counts = attention_mask.sum(dim=1, keepdim=True)
+    mean_embedding = masked_sum / token_counts.clamp(min=1)
 
-        # Get model outputs (no gradient computation for efficiency)
-        with torch.no_grad():
-            outputs = model(**inputs)
+    return mean_embedding.squeeze().cpu().numpy()  # Shape: (hidden_dim,)
 
-        # Extract [CLS] token or mean pool hidden states
-        # Option 1: Use [CLS] token (first token)
-        # cls_embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
-
-        # Option 2: Mean pooling (better for sentence-level semantics)
-        # Compute mean of token embeddings (excluding padding)
-        attention_mask = inputs["attention_mask"]
-        hidden_states = outputs.last_hidden_state  # Shape: (batch_size, seq_len, 768)
-        # Sum embeddings weighted by attention mask, then divide by number of non-padding tokens
-        masked_sum = (hidden_states * attention_mask.unsqueeze(-1)).sum(dim=1)
-        token_counts = attention_mask.sum(dim=1, keepdim=True)
-        mean_embeddings = masked_sum / token_counts.clamp(min=1)  # Avoid division by zero
-        batch_embeddings = mean_embeddings.cpu().numpy()
-
-        embeddings.append(batch_embeddings)
-
-    # Concatenate all batch embeddings
-    return np.concatenate(embeddings, axis=0)
 
 
 def encode_long_paragraph(paragraph, max_length=512, stride=256):
@@ -89,7 +74,7 @@ def load_file_and_gen(file_name):
         paragraph_keys = case_to_embedd['paragraphs'].keys()
         file_wise_embedding = [encode_long_paragraph(case_to_embedd['paragraphs'][p]) if len(
             tokenizer.encode(case_to_embedd['paragraphs'][p])) > 512 else
-                      generate_embeddings([p])[0]
+                      generate_embedding([p])[0]
                       for p in tqdm(paragraph_keys)]
         np.save(f"embeddings/{file_name}.npy", file_wise_embedding)
 
