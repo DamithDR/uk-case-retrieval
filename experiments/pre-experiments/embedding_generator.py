@@ -71,9 +71,11 @@ def load_file_and_gen(file_name):
     with open(file_path, 'r') as f:
         case_to_embedd = json.load(f)
         paragraph_keys = case_to_embedd['paragraphs'].keys()
-        file_wise_embedding = [encode_long_paragraph(case_to_embedd['paragraphs'][p]['paragraph']) if len(
-            tokenizer.encode(case_to_embedd['paragraphs'][p]['paragraph'])) > 512 else generate_embedding(
-            case_to_embedd['paragraphs'][p]['paragraph']) for p in
+        # file_wise_embedding = [encode_long_paragraph(case_to_embedd['paragraphs'][p]['paragraph']) if len(
+        #     tokenizer.encode(case_to_embedd['paragraphs'][p]['paragraph'])) > 512 else generate_embedding(
+        #     case_to_embedd['paragraphs'][p]['paragraph']) for p in
+        #                        tqdm(paragraph_keys)]
+        file_wise_embedding = [generate_embedding(case_to_embedd['paragraphs'][p]['paragraph']) for p in
                                tqdm(paragraph_keys)]
         np.save(f"embeddings/{file_name}.npy", file_wise_embedding)
 
