@@ -34,7 +34,7 @@ def count_tokens(text):
 
 def parse_paragraphs(json_data, citation_map):
     """Extract paragraphs and token information from referenced files."""
-    file_path = 'data/raw/files/'
+    file_path = 'data/raw/anonymised/'
     paragraphs = []
     for obj in tqdm(json_data, desc='parsing paragraps'):
         for citation in obj.get("citations", []):
@@ -59,39 +59,68 @@ def calculate_average(values):
 
 def get_avg_no_paragraphs(file_path, citation_map):
     data = load_json(file_path, 'data/annotation/')
-    paragraphs = parse_paragraphs(data, citation_map)
-    return len(paragraphs) / len(data) if data else 0
+    data = [case['case'] for case in data]
+
+    total_num_paras = []
+    for case in data:
+        case = case.replace('\n','').strip()
+        case_doc = load_json(citation_map[case], 'data/raw/anonymised/')
+        para_list = case_doc['full_text']
+        total_num_paras.append(len(para_list))
+    return sum(total_num_paras) * 1.0 / len(data)
 
 
 def get_avg_tokens_per_document(file_path, citation_map):
     data = load_json(file_path, 'data/annotation/')
-    token_counts = []
-    for obj in tqdm(data, desc="parsing documents"):
-        document_tokens = 0
-        for citation in obj.get("citations", []):
-            if citation in citation_map:
-                citation_file = citation_map[citation]
-                if os.path.exists('data/raw/anonymised/' + citation_file):
-                    cited_data = load_json(citation_file)
-                    for para_key in cited_data.get("sequence", []):
-                        para_content = cited_data["paragraphs"].get(para_key, {}).get("paragraph", "")
-                        document_tokens += count_tokens(para_content)
-        token_counts.append(document_tokens)
-    return calculate_average(token_counts)
+    data = [case['case'] for case in data]
+
+    doc_wise_tokens = []
+    for case in data:
+        case = case.replace('\n', '').strip()
+        case_doc = load_json(citation_map[case], 'data/raw/anonymised/')
+        para_list = case_doc['full_text']
+        tokens_in_doc = 0
+        for para in para_list:
+            tokens_in_doc += len(para.split(" "))  # using space tokeniser
+        doc_wise_tokens.append(tokens_in_doc)
+    return sum(doc_wise_tokens) * 1.0 / len(data)
 
 
 def get_avg_tokens_per_paragraph(file_path, citation_map):
     data = load_json(file_path, 'data/annotation/')
-    paragraphs = parse_paragraphs(data, citation_map)
-    token_counts = [count_tokens(para) for para in paragraphs]
-    return calculate_average(token_counts)
+    data = [case['case'] for case in data]
+
+    doc_wise_tokens = []
+    total_no_of_paras = 0
+    for case in data:
+        case = case.replace('\n', '').strip()
+        case_doc = load_json(citation_map[case], 'data/raw/anonymised/')
+        para_list = case_doc['full_text']
+        tokens_in_doc = 0
+
+        total_no_of_paras += len(para_list)
+        for para in para_list:
+            tokens_in_doc += len(para.split(" "))  # using space tokeniser
+        doc_wise_tokens.append(tokens_in_doc)
+    return sum(doc_wise_tokens) * 1.0 / total_no_of_paras
 
 
 def plot_paragraph_token_frequencies_histogram(file_path, citation_map):
     data = load_json(file_path, 'data/annotation/')
-    paragraphs = parse_paragraphs(data, citation_map)
-    token_counts = [count_tokens(para) for para in paragraphs]
-    plt.hist(token_counts, bins=20, edgecolor='black')
+    data = [case['case'] for case in data]
+
+    para_wise_token_counts = []
+    for case in data:
+        case = case.replace('\n', '').strip()
+        case_doc = load_json(citation_map[case], 'data/raw/anonymised/')
+        para_list = case_doc['full_text']
+
+        for para in para_list:
+            para_wise_token_counts.append(len(para.split(" ")))  # using space tokeniser
+
+    # paragraphs = parse_paragraphs(data, citation_map)
+    # token_counts = [count_tokens(para) for para in paragraphs]
+    plt.hist(para_wise_token_counts, bins=200, edgecolor='black')
     plt.title('Paragraph Token Frequencies')
     plt.xlabel('Number of Tokens')
     plt.ylabel('Frequency')
@@ -100,33 +129,39 @@ def plot_paragraph_token_frequencies_histogram(file_path, citation_map):
 
 def plot_document_token_frequencies_histogram(file_path, citation_map):
     data = load_json(file_path, 'data/annotation/')
-    token_counts = []
-    for obj in data:
-        document_tokens = 0
-        for citation in obj.get("citations", []):
-            if citation in citation_map:
-                citation_file = citation_map[citation]
-                if os.path.exists(citation_file):
-                    cited_data = load_json(citation_file, 'data/mapping/')
-                    for para_key in cited_data.get("sequence", []):
-                        para_content = cited_data["paragraphs"].get(para_key, {}).get("paragraph", "")
-                        document_tokens += count_tokens(para_content)
-        token_counts.append(document_tokens)
-    plt.hist(token_counts, bins=20, edgecolor='black')
+
+    data = [case['case'] for case in data]
+
+    doc_wise_tokens = []
+    for case in data:
+        case = case.replace('\n', '').strip()
+        case_doc = load_json(citation_map[case], 'data/raw/anonymised/')
+        para_list = case_doc['full_text']
+        tokens_in_doc = 0
+        for para in para_list:
+            tokens_in_doc += len(para.split(" "))  # using space tokeniser
+        doc_wise_tokens.append(tokens_in_doc)
+
+
+    plt.hist(doc_wise_tokens, bins=200, edgecolor='black')
     plt.title('Document Token Frequencies')
     plt.xlabel('Number of Tokens')
     plt.ylabel('Frequency')
     plt.show()
 
+if __name__ == '__main__':
 
-# Load the citation map
-# citation_map_path = 'data/mapping/mapping.json'
-citation_map = load_json('mapping.json', 'data/mapping/')
 
-# Example usage
-print("Average number of paragraphs (training):", get_avg_no_paragraphs(training, citation_map))
-print("Average tokens per document (training):", get_avg_tokens_per_document(training, citation_map))
-print("Average tokens per paragraph (training):", get_avg_tokens_per_paragraph(training, citation_map))
+    # Load the citation map
+    # citation_map_path = 'data/mapping/mapping.json'
+    citation_map = load_json('mapping.json', 'data/mapping/')
 
-plot_paragraph_token_frequencies_histogram(training, citation_map)
-plot_document_token_frequencies_histogram(training, citation_map)
+
+    # Example usage
+    # print("Average number of paragraphs (dev):", get_avg_no_paragraphs(dev, citation_map))
+    # print("Average tokens per document (dev):", get_avg_tokens_per_document(dev, citation_map))
+    # print("Average tokens per paragraph (dev):", get_avg_tokens_per_paragraph(dev, citation_map))
+
+
+    plot_paragraph_token_frequencies_histogram(dev, citation_map)
+    plot_document_token_frequencies_histogram(dev, citation_map)

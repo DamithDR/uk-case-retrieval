@@ -1,7 +1,15 @@
+import csv
+import os
+from collections import defaultdict
+
+import numpy as np
+
+
 def sort_by_numbers_desc(numbers, labels):
     sorted_pairs = sorted(zip(numbers, labels), key=lambda x: x[0], reverse=True)
     sorted_numbers, sorted_labels = zip(*sorted_pairs)
     return list(sorted_numbers), list(sorted_labels)
+
 
 def recall_at_k(recommended_items, relevant_items, k):
     """
@@ -82,6 +90,7 @@ def f1_at_k(recommended_items, relevant_items, k):
 
     return f1
 
+
 def average_precision(recommended_items, relevant_items):
     """
     Calculate the Average Precision (AP) for a single queries.
@@ -126,4 +135,42 @@ def mean_average_precision(recommended_lists, relevant_lists):
         ap_scores.append(ap)
 
     return sum(ap_scores) / len(ap_scores) if ap_scores else 0  # Return the mean AP score
+
+
+def sort_by_numbers_desc(numbers, labels):
+    sorted_pairs = sorted(zip(numbers, labels), key=lambda x: x[0], reverse=True)
+    sorted_numbers, sorted_labels = zip(*sorted_pairs)
+    return list(sorted_numbers), list(sorted_labels)
+
+
+def evaluate_results(predictions, gold_data, k_values):
+    gold_keys = [case_data['case'] for case_data in gold_data]
+
+    f1_values = defaultdict(list)
+    p_values = defaultdict(list)
+    r_values = defaultdict(list)
+    flat_preds = []
+    flat_golds = []
+    for id in predictions.keys():
+        values = predictions[id]
+        gold_case = gold_data[gold_keys.index(id)]
+        pred_scores, pred_ids = sort_by_numbers_desc(values['scores'], values['keys'])
+        flat_preds.append(pred_ids)
+        gold_citations = gold_case['citations']
+        flat_golds.append(gold_citations)
+
+        for k in k_values:
+            f1_values[k].append(f1_at_k(pred_ids, gold_citations, k))
+            p_values[k].append(precision_at_k(pred_ids, gold_citations, k))
+            r_values[k].append(recall_at_k(pred_ids, gold_citations, k))
+
+    MAP = str(round(mean_average_precision(flat_preds, flat_golds), 2))
+
+    f1_final = [str(round(np.mean(f1_values[k]).item(), 2)) for k in k_values]
+    p_final = [str(round(np.mean(p_values[k]).item(), 2)) for k in k_values]
+    r_final = [str(round(np.mean(r_values[k]).item(), 2)) for k in k_values]
+
+    return MAP, f1_final, p_final, r_final
+
+
 
