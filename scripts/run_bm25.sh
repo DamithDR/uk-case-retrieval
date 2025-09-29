@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=cpu-6h
-#SBATCH --output=log/output_%A_%a.log
+#SBATCH --output=log/output.log
 
 source venv/bin/activate
 
