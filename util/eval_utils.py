@@ -154,7 +154,11 @@ def evaluate_results(predictions, gold_data, k_values):
     for id in predictions.keys():
         values = predictions[id]
         gold_case = gold_data[gold_keys.index(id)]
-        pred_scores, pred_ids = sort_by_numbers_desc(values['scores'], values['keys'])
+        pred_scores, pred_ids = sort_by_numbers_desc(values['scores'].copy(), values['keys'].copy())
+
+        pred_scores.pop(pred_ids.index(id))#remove the query from candidates
+        pred_ids.pop(pred_ids.index(id))
+
         flat_preds.append(pred_ids)
         gold_citations = gold_case['citations']
         flat_golds.append(gold_citations)
@@ -171,6 +175,3 @@ def evaluate_results(predictions, gold_data, k_values):
     r_final = [str(round(np.mean(r_values[k]).item(), 2)) for k in k_values]
 
     return MAP, f1_final, p_final, r_final
-
-
-
