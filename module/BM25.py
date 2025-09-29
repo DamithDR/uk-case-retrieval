@@ -18,7 +18,7 @@ def generate_BM25_corpus():
     with open(candidates_file, 'r') as f:
         candidates = json.load(f)
 
-        candidates_cases = [candidate['case'].replace('\n').strip() for candidate in candidates]
+        candidates_cases = [candidate['case'].replace('\n','').strip() for candidate in candidates]
 
         for candidate_case in candidates_cases:
             with open(f'data/raw/anonymised/{citation_map[candidate_case]}', 'r') as c_file:
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     with open(queries_file, 'r') as f:
         queries = json.load(f)
-        query_cases = [query['case'].replace('\n').strip() for query in queries]
+        query_cases = [query['case'].replace('\n','').strip() for query in queries]
 
         results = {}
         for case in query_cases:
