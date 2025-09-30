@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=cpu-48h
 #SBATCH --output=log/output.log
-#SBATCH --mem=64G
+#SBATCH --mem=32G
 
 source venv/bin/activate
 
