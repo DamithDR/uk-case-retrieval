@@ -34,7 +34,7 @@ def load_document(case_citation, mapping):
             return json.load(file)
 
 
-def load_mappings():
+def load_mappings() -> dict:
     with open('data/mapping/mapping.json', 'r') as file:
         return json.load(file)
 
