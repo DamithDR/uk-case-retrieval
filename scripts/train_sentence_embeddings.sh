@@ -3,7 +3,7 @@
 #SBATCH --exclude=hex-p3-g19
 #SBATCH --output=log/output_%A_%a.log
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=40G
+#SBATCH --mem=100G
 
 source venv/bin/activate
 
