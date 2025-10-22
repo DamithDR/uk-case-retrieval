@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --partition=a5000-48h
-#SBATCH --exclusive
 #SBATCH --output=log/output_%A_%a.log
 
 source venv/bin/activate
