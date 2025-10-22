@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=a5000-48h
-#SBATCH --gres=gpu:1
+#SBATCH --mem-per-gpu=24G
 #SBATCH --output=log/output_%A_%a.log
 
 source venv/bin/activate
