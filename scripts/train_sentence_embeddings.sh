@@ -2,7 +2,7 @@
 #SBATCH --partition=a5000-48h
 #SBATCH --exclude=hex-p3-g19
 #SBATCH --output=log/output_%A_%a.log
-#SBATCH --mem=100G
+#SBATCH --mem=40G
 
 source venv/bin/activate
 
