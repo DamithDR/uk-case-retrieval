@@ -1,6 +1,9 @@
 #!/bin/bash
 #SBATCH --partition=a5000-48h
+#SBATCH --exclude=hex-p3-g19
 #SBATCH --output=log/output_%A_%a.log
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=40G
 
 source venv/bin/activate
 
