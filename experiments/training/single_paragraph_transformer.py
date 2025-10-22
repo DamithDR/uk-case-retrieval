@@ -68,7 +68,7 @@ def run(arguments):
 
     # 7. Create a trainer & train
     trainer = SparseEncoderTrainer(
-        model=arguments.model_name,
+        model=model,
         args=args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
