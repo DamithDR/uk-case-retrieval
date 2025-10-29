@@ -78,14 +78,14 @@ def run(arguments):
 
     candidates = load_dataset(arguments.candidates_file_path, data_files=arguments.candidates_file)
     gold_data = load_dataset(arguments.gold_file_path, data_files=arguments.gold_file)
-    corpus = candidates['candidate']
-    queries = gold_data['query']
-    positives = gold_data['positive']
+    corpus = candidates['train']['candidate']
+    queries = gold_data['train']['query']
+    positives = gold_data['train']['positive']
 
     corpus_embeddings = model.encode(corpus)
     query_embeddings = model.encode(queries)
 
-    eval_at_k(queries, query_embeddings, corpus_embeddings, model, positives, corpus)
+    eval_at_k(queries, query_embeddings, corpus, corpus_embeddings, positives, model)
 
 
 if __name__ == '__main__':
