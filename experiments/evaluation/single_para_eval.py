@@ -4,6 +4,7 @@ import os
 import numpy as np
 from datasets import load_dataset
 from sentence_transformers import SparseEncoder, util
+from tqdm import tqdm
 
 from util.eval_utils import recall_at_k, precision_at_k, f1_at_k, mean_average_precision
 
@@ -39,7 +40,7 @@ def eval_at_k(queries, query_embeddings, corpus, corpus_embeddings, positives, m
     MAP = 0.0
     pred_lists = []
     positive_lists = []
-    for query_id, query in enumerate(queries):
+    for query_id, query in tqdm(enumerate(queries)):
         predictions = []
 
         for res in results[query_id]:
