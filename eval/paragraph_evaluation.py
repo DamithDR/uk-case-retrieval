@@ -35,7 +35,7 @@ def output_results(MAP, f1_final, p_final, r_final):
     p_final = [str(round(p, 2)) for p in p_final]
     r_final = [str(round(r, 2)) for r in r_final]
 
-    results_file_name = 'results/new_results.csv'
+    results_file_name = 'results/results.csv'
     if not os.path.exists(results_file_name):
         with open(results_file_name, 'a') as f:
             f.write("Model,Dataset,Metric,MAP")
