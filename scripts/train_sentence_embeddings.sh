@@ -6,7 +6,7 @@
 
 source venv/bin/activate
 
-python3 -m experiments.training.single_paragraph_transformer --model_name=google-bert/bert-base-uncased \
+python3 -m experiments.training.single_paragraph_transformer --model_name=nlpaueb/legal-bert-base-uncased \
 --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W3.tsv \
 --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W3.tsv \
 --run_alias=positive_negative_W3 --batch_size=2 --eval_batch_size=2
