@@ -2,7 +2,7 @@
 #SBATCH --partition=a5000-48h
 #SBATCH --gres=gpu:nvidia_rtx_a5000:3
 #SBATCH --output=log/output_%A_%a.log
-#SBATCH --mem=40G
+#SBATCH --mem=80G
 
 source venv/bin/activate
 
