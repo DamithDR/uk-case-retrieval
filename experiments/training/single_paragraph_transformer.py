@@ -1,10 +1,14 @@
 import argparse
+import gc
 
+import torch
 from datasets import load_dataset
 from sentence_transformers import SparseEncoder, SparseEncoderTrainingArguments, SparseEncoderTrainer
 from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator, SparseTripletEvaluator
 from sentence_transformers.sparse_encoder.losses import SpladeLoss, SparseMultipleNegativesRankingLoss
 from sentence_transformers.training_args import BatchSamplers
+
+from accelerate import Accelerator
 
 
 def get_save_name(model_name):
@@ -16,8 +20,18 @@ def get_run_name(model_name):
     model = model_name.replace('/', '_')
     return f'{model}_{arguments.run_alias}'
 
+def clear_memory():
+    """Clear GPU memory cache"""
+    gc.collect()
+    torch.cuda.empty_cache()
 
 def run(arguments):
+    accelerator = Accelerator(
+        gradient_accumulation_steps=arguments.gradient_accumulation_steps,
+        mixed_precision='fp16',  # Use mixed precision training
+        cpu=False,
+    )
+
     # Load a model to train/finetune
     model = SparseEncoder(arguments.model_name)
 
@@ -76,10 +90,15 @@ def run(arguments):
         loss=loss,
         evaluator=dev_evaluator,
     )
+
+    # Prepare everything with accelerator
+    model, trainer = accelerator.prepare(model, trainer)
+
+    clear_memory()
     trainer.train()
 
-    # 8. Evaluate the model performance again after training
-    dev_evaluator(model)
+    if accelerator.is_main_process:
+        dev_evaluator(model)
 
     # 9. Save the trained model
     model.save_pretrained(f"models/{run_name}/final")
