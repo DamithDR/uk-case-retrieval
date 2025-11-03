@@ -57,6 +57,7 @@ def run(arguments):
         save_steps=100,
         save_total_limit=2,
         logging_steps=100,
+        gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
     )
 
