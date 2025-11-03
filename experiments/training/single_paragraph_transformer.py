@@ -27,7 +27,7 @@ def clear_memory():
 
 def run(arguments):
     accelerator = Accelerator(
-        gradient_accumulation_steps=arguments.gradient_accumulation_steps,
+        gradient_accumulation_steps=2,
         mixed_precision='fp16',  # Use mixed precision training
         cpu=False,
     )
