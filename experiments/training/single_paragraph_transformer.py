@@ -34,7 +34,7 @@ def run(arguments):
 
     # Load a model to train/finetune
     model = SparseEncoder(arguments.model_name)
-    model = torch.nn.parallel.DistributedDataParallel(model) #use multiple GPUs
+    model = torch.nn.DataParallel(model) #use multiple GPUs
 
     # Initialize the SpladeLoss with a SparseMultipleNegativesRankingLoss
     # This loss requires pairs of related texts or triplets
