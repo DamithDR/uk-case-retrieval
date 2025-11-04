@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=a5000-48h
-#SBATCH --gres=gpu:nvidia_rtx_a5000:3
+#SBATCH --gres=gpu:nvidia_rtx_a5000:2
 #SBATCH --output=log/output_%A_%a.log
 #SBATCH --mem=80G
 
