@@ -39,7 +39,7 @@ def run(arguments):
     # Initialize the SpladeLoss with a SparseMultipleNegativesRankingLoss
     # This loss requires pairs of related texts or triplets
     loss = SpladeLoss(
-        model=model,
+        model=model.module,
         loss=SparseMultipleNegativesRankingLoss(model=model),
         query_regularizer_weight=5e-5,  # Weight for query loss
         document_regularizer_weight=3e-5,
@@ -84,7 +84,7 @@ def run(arguments):
 
     # 7. Create a trainer & train
     trainer = SparseEncoderTrainer(
-        model=model,
+        model=model.module,
         args=args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
