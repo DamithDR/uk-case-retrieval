@@ -6,7 +6,7 @@
 
 source venv/bin/activate
 
-torchrun --nproc_per_node=2 -m experiments.training.single_paragraph_transformer --model_name=Qwen/Qwen2.5-1.5B \
+python -m experiments.training.single_paragraph_transformer --model_name=Qwen/Qwen3-Embedding-0.6B \
 --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W1.tsv \
 --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W1.tsv \
 --run_alias=positive_negative_W1 --batch_size=2 --eval_batch_size=2

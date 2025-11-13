@@ -45,17 +45,17 @@ def cleanup_ddp():
         dist.destroy_process_group()
 
 def run(arguments):
-    local_rank = setup_ddp()
+    # local_rank = setup_ddp()
 
     # Load a model to train/finetune
     model = SparseEncoder(arguments.model_name)
-    model = model.to(local_rank)
+    # model = model.to(local_rank)
 
-    # Wrap in DDP if multi-GPU
-    if torch.distributed.is_initialized():
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[local_rank], output_device=local_rank
-        )
+    # # Wrap in DDP if multi-GPU
+    # if torch.distributed.is_initialized():
+    #     model = torch.nn.parallel.DistributedDataParallel(
+    #         model, device_ids=[local_rank], output_device=local_rank
+    #     )
 
 
     accelerator = Accelerator(
