@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=d.dolamullage@lancaster.ac.uk
-#SBATCH --output=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/embed_output.log
-#SBATCH --error=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/embed_error.log
+#SBATCH --output=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen0.6_output.log
+#SBATCH --error=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen0.6_error.log
 
 source /etc/profile
 module add anaconda3/2023.09
@@ -27,7 +27,7 @@ done < .env
 
 huggingface-cli login --token $HUGGINGFACE_TOKEN
 
-python -m experiments.training.single_paragraph_transformer --model_name=nomic-ai/modernbert-embed-base \
+python -m experiments.training.single_paragraph_transformer --model_name=Qwen/Qwen3-Embedding-0.6B \
 --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W1.tsv \
 --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W1.tsv \
 --run_alias=positive_negative_W1 --batch_size=2 --eval_batch_size=2
