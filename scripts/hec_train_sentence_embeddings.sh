@@ -15,6 +15,8 @@ module add cuda/12.0
 
 source activate /storage/hpc/41/dolamull/conda_envs/llm_env
 export HF_HOME=/scratch/hpc/41/dolamull/hf_cache
+export PIP_CACHE_DIR=/scratch/hpc/41/dolamull/pip_cache
+
 
 while IFS='=' read -r key value; do
   if [[ -n "$key" && "$key" != \#* ]]; then
