@@ -16,7 +16,11 @@ module add cuda/12.0
 source activate /storage/hpc/41/dolamull/conda_envs/llm_env
 export HF_HOME=/scratch/hpc/41/dolamull/hf_cache
 
-source <(grep -v '^#' .env | xargs -d '\n')
+while IFS='=' read -r key value; do
+  if [[ -n "$key" && "$key" != \#* ]]; then
+    export "$key"="$value"
+  fi
+done < .env
 
 huggingface-cli login --token $HUGGINGFACE_TOKEN
 
