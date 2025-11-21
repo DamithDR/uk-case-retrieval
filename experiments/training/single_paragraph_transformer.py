@@ -48,11 +48,18 @@ def cleanup_ddp():
         dist.destroy_process_group()
 
 
+def print_gpu_memory():
+    for i in range(torch.cuda.device_count()):
+        allocated = torch.cuda.memory_allocated(i) / 1024**3
+        reserved = torch.cuda.memory_reserved(i) / 1024**3
+        print(f"GPU {i}: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
+
 def run(arguments):
     # local_rank = setup_ddp()
-
+    print_gpu_memory("Start")
     # Load a model to train/finetune
     model = SparseEncoder(arguments.model_name) #for qwen training
+    print_gpu_memory("After model load")
 
     # model = model.to(local_rank)
 
@@ -72,15 +79,16 @@ def run(arguments):
     # This loss requires pairs of related texts or triplets
     loss = SpladeLoss(
         model=model,
-        loss=SparseMultipleNegativesRankingLoss(),
+        loss=SparseMultipleNegativesRankingLoss(model=model),
         query_regularizer_weight=5e-5,  # Weight for query loss
         document_regularizer_weight=3e-5,
     )
+    print_gpu_memory("After loss init")
 
     # Load an example training dataset that works with our loss function:
     train_dataset = load_dataset(arguments.training_file_path, data_files=arguments.training_file)
     eval_dataset = load_dataset(arguments.training_file_path, data_files=arguments.eval_file)
-    print(train_dataset)
+    print_gpu_memory("After dataset load")
 
     save_name = get_save_name(arguments.model_name)
     run_name = get_run_name(arguments.model_name)
@@ -107,6 +115,13 @@ def run(arguments):
         gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
         ddp_find_unused_parameters=False,  # Set to True if you get errors
+
+        # Memory optimizations
+        gradient_checkpointing=True,
+        optim="adamw_torch_fused",
+        max_grad_norm=1.0,
+        dataloader_num_workers=0,  # Avoid extra memory in workers
+        dataloader_pin_memory=False,  # Reduce memory overhead
     )
 
     # 6. (Optional) Create an evaluator & evaluate the base model
@@ -115,6 +130,7 @@ def run(arguments):
                                            negatives=eval_dataset['train']["negative"],
                                            batch_size=arguments.eval_batch_size, show_progress_bar=True)
 
+    print_gpu_memory("After evaluator init")
     # 7. Create a trainer & train
     trainer = SparseEncoderTrainer(
         model=model,
@@ -127,8 +143,10 @@ def run(arguments):
 
     # # Prepare everything with accelerator
     # model, trainer = accelerator.prepare(model, trainer)
-
+    print_gpu_memory("After trainer init")
     clear_memory()
+
+    print_gpu_memory("After clear_memory")
     trainer.train()
 
     # if accelerator.is_main_process:
