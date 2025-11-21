@@ -62,11 +62,11 @@ def run(arguments):
     #         model, device_ids=[local_rank], output_device=local_rank
     #     )
 
-    accelerator = Accelerator(
-        gradient_accumulation_steps=2,
-        mixed_precision='fp16',  # Use mixed precision training
-        cpu=False,
-    )
+    # accelerator = Accelerator(
+    #     gradient_accumulation_steps=2,
+    #     mixed_precision='fp16',  # Use mixed precision training
+    #     cpu=False,
+    # )
 
     # Initialize the SpladeLoss with a SparseMultipleNegativesRankingLoss
     # This loss requires pairs of related texts or triplets
@@ -106,6 +106,7 @@ def run(arguments):
         logging_steps=100,
         gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
+        ddp_find_unused_parameters=False,  # Set to True if you get errors
     )
 
     # 6. (Optional) Create an evaluator & evaluate the base model
@@ -124,17 +125,22 @@ def run(arguments):
         evaluator=dev_evaluator,
     )
 
-    # Prepare everything with accelerator
-    model, trainer = accelerator.prepare(model, trainer)
+    # # Prepare everything with accelerator
+    # model, trainer = accelerator.prepare(model, trainer)
 
     clear_memory()
     trainer.train()
 
-    if accelerator.is_main_process:
-        dev_evaluator(model)
+    # if accelerator.is_main_process:
+    #     dev_evaluator(model)
 
     # 9. Save the trained model
-    model.save_pretrained(f"models/{run_name}/final")
+    final_model_path = f"models/{run_name}/final"
+    trainer.save_model(final_model_path)
+
+    # Only evaluate on main process
+    if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
+        dev_evaluator(model)
 
 
 if __name__ == '__main__':
