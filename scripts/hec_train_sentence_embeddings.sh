@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=d.dolamullage@lancaster.ac.uk
-#SBATCH --output=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen0.6_output.log
-#SBATCH --error=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen0.6_error.log
+#SBATCH --output=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen4_output.log
+#SBATCH --error=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen4_error.log
 
 source /etc/profile
 module add anaconda3/2023.09
