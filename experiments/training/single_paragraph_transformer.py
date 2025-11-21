@@ -56,12 +56,28 @@ def print_gpu_memory(label=""):
             reserved = torch.cuda.memory_reserved(i) / 1024**3
             print(f"[{label}] GPU {i}: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
 
+# Truncate function
+def truncate_dataset(example):
+    """Truncate texts to MAX_CHARS characters"""
+    if 'anchor' in example:
+        example['anchor'] = example['anchor'][:MAX_CHARS] if example['anchor'] else ""
+    if 'positive' in example:
+        example['positive'] = example['positive'][:MAX_CHARS] if example['positive'] else ""
+    if 'negative' in example:
+        example['negative'] = example['negative'][:MAX_CHARS] if example['negative'] else ""
+    return example
 
 def run(arguments):
+
     # local_rank = setup_ddp()
     print_gpu_memory("Start")
     # Load a model to train/finetune
     model = SparseEncoder(arguments.model_name) #for qwen training
+
+    # Set tokenizer max length if available
+    if hasattr(model, 'tokenizer') and hasattr(model.tokenizer, 'model_max_length'):
+        model.tokenizer.model_max_length = MAX_TOKENS
+        print(f"Set tokenizer max_length to {MAX_TOKENS}")
     print_gpu_memory("After model load")
 
     # model = model.to(local_rank)
@@ -91,6 +107,11 @@ def run(arguments):
     # Load an example training dataset that works with our loss function:
     train_dataset = load_dataset(arguments.training_file_path, data_files=arguments.training_file)
     eval_dataset = load_dataset(arguments.training_file_path, data_files=arguments.eval_file)
+
+    # Apply truncation
+    print(f"\nTruncating texts to {MAX_TOKENS} tokens (~{MAX_CHARS} characters)...")
+    train_dataset = train_dataset.map(truncate_dataset, batched=False)
+    eval_dataset = eval_dataset.map(truncate_dataset, batched=False)
     print_gpu_memory("After dataset load")
 
     save_name = get_save_name(arguments.model_name)
@@ -165,6 +186,8 @@ def run(arguments):
 
 
 if __name__ == '__main__':
+    MAX_TOKENS = 4096
+    MAX_CHARS = MAX_TOKENS * 4  # Roughly 4 chars per token = 16,384 characters
     parser = argparse.ArgumentParser(
         description='''sentence transformer arguments''')
     parser.add_argument('--model_name', type=str, required=True, help='model_name')

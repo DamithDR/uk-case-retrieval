@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:2
 #SBATCH --mem=80G
 #SBATCH --time=24:00:00
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=8
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=d.dolamullage@lancaster.ac.uk
 #SBATCH --output=/storage/hpc/41/dolamull/experiments/uk-case-retrieval/qwen0.6_output.log
