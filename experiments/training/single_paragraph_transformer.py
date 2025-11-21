@@ -52,7 +52,7 @@ def run(arguments):
     # local_rank = setup_ddp()
 
     # Load a model to train/finetune
-    model = SparseEncoder(arguments.model_name, torch_dtype=torch.float16, device_map="auto") #for qwen training
+    model = SparseEncoder.from_pretrained(arguments.model_name, torch_dtype=torch.float16, device_map="auto") #for qwen training
 
     # model = model.to(local_rank)
 
