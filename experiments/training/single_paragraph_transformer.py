@@ -68,6 +68,8 @@ def truncate_dataset(example):
     return example
 
 def run(arguments):
+    os.environ['TOKENIZERS_PARALLELISM'] = 'False'
+    os.environ['WANDB_DISABLED'] = 'True'  # Disable WandB
 
     # local_rank = setup_ddp()
     print_gpu_memory("Start")
@@ -148,6 +150,8 @@ def run(arguments):
         max_grad_norm=1.0,
         dataloader_num_workers=0,  # Avoid extra memory in workers
         dataloader_pin_memory=False,  # Reduce memory overhead
+
+        report_to=[],  # Disable all reporting including WandB
     )
 
     # 6. (Optional) Create an evaluator & evaluate the base model

@@ -18,9 +18,6 @@ export HF_HOME=/scratch/hpc/41/dolamull/hf_cache
 export PIP_CACHE_DIR=/scratch/hpc/41/dolamull/pip_cache
 export TRITON_CACHE_DIR=/scratch/hpc/41/dolamull/triton-cache
 
-export WANDB_DISABLED=true
-export TOKENIZERS_PARALLELISM=false
-
 
 while IFS='=' read -r key value; do
   if [[ -n "$key" && "$key" != \#* ]]; then
