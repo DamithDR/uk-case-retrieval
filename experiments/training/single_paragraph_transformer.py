@@ -48,11 +48,14 @@ def cleanup_ddp():
         dist.destroy_process_group()
 
 
-def print_gpu_memory():
-    for i in range(torch.cuda.device_count()):
-        allocated = torch.cuda.memory_allocated(i) / 1024**3
-        reserved = torch.cuda.memory_reserved(i) / 1024**3
-        print(f"GPU {i}: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
+def print_gpu_memory(label=""):
+    """Print GPU memory usage"""
+    if torch.cuda.is_available():
+        for i in range(torch.cuda.device_count()):
+            allocated = torch.cuda.memory_allocated(i) / 1024**3
+            reserved = torch.cuda.memory_reserved(i) / 1024**3
+            print(f"[{label}] GPU {i}: {allocated:.2f}GB allocated, {reserved:.2f}GB reserved")
+
 
 def run(arguments):
     # local_rank = setup_ddp()
