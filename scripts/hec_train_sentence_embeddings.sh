@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p astro
-#SBATCH --gres=gpu:2
+#SBATCH --gres=gpu:1
 #SBATCH --mem=80G
 #SBATCH --time=24:00:00
 #SBATCH --cpus-per-task=8
@@ -27,7 +27,7 @@ done < .env
 
 huggingface-cli login --token $HUGGINGFACE_TOKEN
 
-torchrun --nproc_per_node=2 -m experiments.training.single_paragraph_transformer --model_name=Qwen/Qwen3-Embedding-0.6B \
+python-m experiments.training.single_paragraph_transformer --model_name=Qwen/Qwen3-Embedding-0.6B \
 --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W1.tsv \
 --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W1.tsv \
 --run_alias=positive_negative_W1 --batch_size=2 --eval_batch_size=2
