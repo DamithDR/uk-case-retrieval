@@ -23,10 +23,12 @@ def get_run_name(model_name):
     model = model_name.replace('/', '_')
     return f'{model}_{arguments.run_alias}'
 
+
 def clear_memory():
     """Clear GPU memory cache"""
     gc.collect()
     torch.cuda.empty_cache()
+
 
 def setup_ddp():
     """Initialize torch.distributed and return the local GPU rank."""
@@ -40,15 +42,18 @@ def setup_ddp():
         print("Running in single-GPU mode.")
         return 0
 
+
 def cleanup_ddp():
     if dist.is_initialized():
         dist.destroy_process_group()
+
 
 def run(arguments):
     # local_rank = setup_ddp()
 
     # Load a model to train/finetune
-    model = SparseEncoder(arguments.model_name)
+    model = SparseEncoder(arguments.model_name, torch_dtype=torch.float16, device_map="auto") #for qwen training
+
     # model = model.to(local_rank)
 
     # # Wrap in DDP if multi-GPU
@@ -56,7 +61,6 @@ def run(arguments):
     #     model = torch.nn.parallel.DistributedDataParallel(
     #         model, device_ids=[local_rank], output_device=local_rank
     #     )
-
 
     accelerator = Accelerator(
         gradient_accumulation_steps=2,
