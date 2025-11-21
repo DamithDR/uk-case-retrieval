@@ -68,8 +68,6 @@ def truncate_dataset(example):
     return example
 
 def run(arguments):
-    os.environ['TOKENIZERS_PARALLELISM'] = 'False'
-    os.environ['WANDB_DISABLED'] = 'True'  # Disable WandB
 
     # local_rank = setup_ddp()
     print_gpu_memory("Start")
@@ -82,19 +80,6 @@ def run(arguments):
         print(f"Set tokenizer max_length to {MAX_TOKENS}")
     print_gpu_memory("After model load")
 
-    # model = model.to(local_rank)
-
-    # # Wrap in DDP if multi-GPU
-    # if torch.distributed.is_initialized():
-    #     model = torch.nn.parallel.DistributedDataParallel(
-    #         model, device_ids=[local_rank], output_device=local_rank
-    #     )
-
-    # accelerator = Accelerator(
-    #     gradient_accumulation_steps=2,
-    #     mixed_precision='fp16',  # Use mixed precision training
-    #     cpu=False,
-    # )
 
     # Initialize the SpladeLoss with a SparseMultipleNegativesRankingLoss
     # This loss requires pairs of related texts or triplets
