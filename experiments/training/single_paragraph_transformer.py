@@ -138,7 +138,9 @@ def run(arguments):
         logging_steps=100,
         gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
-        ddp_find_unused_parameters=False,  # Set to True if you get errors
+
+        ddp_find_unused_parameters=True,  # Changed to True
+        ddp_broadcast_buffers=False,
 
         # Memory optimizations
         gradient_checkpointing=True,
