@@ -141,8 +141,8 @@ def run(arguments):
         gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
 
-        ddp_find_unused_parameters=True,  # Changed to True
-        ddp_broadcast_buffers=False,
+        # ddp_find_unused_parameters=True,  # Changed to True
+        # ddp_broadcast_buffers=False,
 
         # Memory optimizations
         gradient_checkpointing=True,
@@ -151,7 +151,7 @@ def run(arguments):
         dataloader_num_workers=0,  # Avoid extra memory in workers
         dataloader_pin_memory=False,  # Reduce memory overhead
 
-        report_to=[],  # Disable all reporting including WandB
+        # report_to=[],  # Disable all reporting including WandB
     )
 
     # 6. (Optional) Create an evaluator & evaluate the base model
