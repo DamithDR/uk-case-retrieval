@@ -72,7 +72,7 @@ def run(arguments):
     # This loss requires pairs of related texts or triplets
     loss = SpladeLoss(
         model=model,
-        loss=SparseMultipleNegativesRankingLoss(model=model),
+        loss=SparseMultipleNegativesRankingLoss(),
         query_regularizer_weight=5e-5,  # Weight for query loss
         document_regularizer_weight=3e-5,
     )
