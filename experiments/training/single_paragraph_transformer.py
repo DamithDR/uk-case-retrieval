@@ -72,7 +72,7 @@ def run(arguments):
     # local_rank = setup_ddp()
     print_gpu_memory("Start")
     # Load a model to train/finetune
-    model = SparseEncoder(arguments.model_name) #for qwen training
+    model = SparseEncoder(arguments.model_name,trust_remote_code=True) #for qwen training
 
     # Set tokenizer max length if available
     if hasattr(model, 'tokenizer') and hasattr(model.tokenizer, 'model_max_length'):
