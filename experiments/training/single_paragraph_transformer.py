@@ -4,9 +4,11 @@ import gc
 import torch
 from datasets import load_dataset
 from sentence_transformers import SparseEncoder, SparseEncoderTrainingArguments, SparseEncoderTrainer, \
-    SentenceTransformer
+    SentenceTransformer, SentenceTransformerTrainer, SentenceTransformerTrainingArguments
+from sentence_transformers.evaluation import TripletEvaluator
 from sentence_transformers.sparse_encoder.evaluation import SparseNanoBEIREvaluator, SparseTripletEvaluator
 from sentence_transformers.sparse_encoder.losses import SpladeLoss, SparseMultipleNegativesRankingLoss
+from sentence_transformers.losses import MultipleNegativesRankingLoss
 from sentence_transformers.training_args import BatchSamplers
 
 from accelerate import Accelerator
