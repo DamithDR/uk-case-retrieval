@@ -74,7 +74,7 @@ def run(arguments):
     # local_rank = setup_ddp()
     print_gpu_memory("Start")
     # Load a model to train/finetune
-    model = SparseEncoder(arguments.model_name) #for qwen training
+    model = SparseEncoder(arguments.model_name,trust_remote_code=True) #for qwen training
 
     # Set tokenizer max length if available
     if hasattr(model, 'tokenizer') and hasattr(model.tokenizer, 'model_max_length'):
@@ -127,7 +127,6 @@ def run(arguments):
         logging_steps=100,
         gradient_accumulation_steps=2,
         run_name=run_name,  # Will be used in W&B if `wandb` is installed
-        trust_remote_code = True,
         # ddp_find_unused_parameters=True,  # Changed to True
         # ddp_broadcast_buffers=False,
 
