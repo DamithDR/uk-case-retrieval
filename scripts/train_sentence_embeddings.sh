@@ -6,7 +6,7 @@
 
 source venv/bin/activate
 
-python -m experiments.training.single_paragraph_transformer --model_name=intfloat/e5-large-v2 \
+python -m experiments.training.single_paragraph_transformer --model_name=nomic-ai/nomic-embed-text-v1.5 \
 --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W1.tsv \
 --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W1.tsv \
 --run_alias=positive_negative_W1 --batch_size=2 --eval_batch_size=2
