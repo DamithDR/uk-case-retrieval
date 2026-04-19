@@ -73,8 +73,12 @@ def eval_at_k(queries, query_embeddings, corpus, corpus_embeddings, positives, m
 
 
 def run(arguments):
-    # 1. Load my trained SparseEncoder model
-    model = SparseEncoder(arguments.model_name)
+    # 1. Load model — sparse or dense depending on flag
+    if arguments.model_type == "dense":
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer(arguments.model_name, trust_remote_code=True)
+    else:
+        model = SparseEncoder(arguments.model_name, trust_remote_code=True)
 
     candidates = load_dataset(arguments.candidates_file_path, data_files=arguments.candidates_file)
     gold_data = load_dataset(arguments.gold_file_path, data_files=arguments.gold_file)
@@ -82,8 +86,8 @@ def run(arguments):
     queries = gold_data['train']['query']
     positives = gold_data['train']['positive']
 
-    corpus_embeddings = model.encode(corpus)
-    query_embeddings = model.encode(queries)
+    corpus_embeddings = model.encode(corpus, batch_size=arguments.batch_size, show_progress_bar=True)
+    query_embeddings = model.encode(queries, batch_size=arguments.batch_size, show_progress_bar=True)
 
     eval_at_k(queries, query_embeddings, corpus, corpus_embeddings, positives, model)
 
@@ -97,7 +101,8 @@ if __name__ == '__main__':
     parser.add_argument('--gold_file_path', type=str, required=True, help='gold_file_path')
     parser.add_argument('--candidates_file', type=str, required=True, help='candidates_file')
     parser.add_argument('--gold_file', type=str, required=True, help='gold_file')
-
+    parser.add_argument('--model_type', type=str, default='sparse', choices=['sparse', 'dense'], help='sparse or dense model')
+    parser.add_argument('--batch_size', type=int, default=8, help='encoding batch size')
     parser.add_argument('--run_alias', type=str, required=True, help='run_alias')
     arguments = parser.parse_args()
     run(arguments)
