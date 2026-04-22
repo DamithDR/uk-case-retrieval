@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:nvidia_rtx_a5000:1
 #SBATCH --output=log/output_%A_%a.log
 #SBATCH --mem=40G
-#SBATCH --array=0-3
+#SBATCH --array=0-5
 
 MODELS=(
     "models/google-bert_bert-base-uncased_positive_negative_W3/final"
