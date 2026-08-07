@@ -12,9 +12,9 @@ import os
 import torch.distributed as dist
 
 
-def get_save_name(model_name):
+def get_save_name(model_name, output_base):
     name = model_name.replace('/', '_')
-    return f'outputs/{name}/'
+    return os.path.join(output_base, 'outputs', name)
 
 
 def get_run_name(model_name, run_alias):
@@ -62,7 +62,7 @@ def run(arguments):
     eval_dataset = eval_dataset.map(truncate_dataset, batched=False)
     print_gpu_memory("After dataset load")
 
-    save_name = get_save_name(arguments.model_name)
+    save_name = get_save_name(arguments.model_name, arguments.output_base)
     run_name = get_run_name(arguments.model_name, arguments.run_alias)
 
     args = SentenceTransformerTrainingArguments(
@@ -113,7 +113,8 @@ def run(arguments):
     print_gpu_memory("After clear_memory")
     trainer.train()
 
-    final_model_path = f"models/{run_name}/final"
+    final_model_path = os.path.join(arguments.output_base, 'models', run_name, 'final')
+    os.makedirs(final_model_path, exist_ok=True)
     trainer.save_model(final_model_path)
 
     if not dist.is_initialized() or dist.get_rank() == 0:
@@ -135,6 +136,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=3)
     parser.add_argument('--learning_rate', type=float, default=2e-5)
     parser.add_argument('--run_alias', type=str, required=True)
+    parser.add_argument('--output_base', type=str,
+                        default=os.environ.get('MODEL_DIR', '/scratch/hpc/41/dolamull/uk-case-retrieval'),
+                        help='Base directory on scratch for checkpoints and final models')
     arguments = parser.parse_args()
 
     run(arguments)

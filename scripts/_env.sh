@@ -26,11 +26,13 @@ if [[ "${EMBED_ENV}" == /* ]] && [[ "$(command -v python)" != "${EMBED_ENV}"/* ]
   exit 1
 fi
 
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-/scratch/hpc/41/dolamull/.cache}"
+export SCRATCH_DIR="${SCRATCH_DIR:-/scratch/hpc/41/dolamull}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$SCRATCH_DIR/.cache}"
 export HF_HOME="${HF_HOME:-$XDG_CACHE_HOME/huggingface}"
 export PIP_CACHE_DIR="${PIP_CACHE_DIR:-$XDG_CACHE_HOME/pip}"
 export TRITON_CACHE_DIR="${TRITON_CACHE_DIR:-$XDG_CACHE_HOME/triton}"
-mkdir -p "$XDG_CACHE_HOME" "$HF_HOME" "$PIP_CACHE_DIR" "$TRITON_CACHE_DIR" 2>/dev/null || true
+export MODEL_DIR="${MODEL_DIR:-$SCRATCH_DIR/uk-case-retrieval/models}"
+mkdir -p "$XDG_CACHE_HOME" "$HF_HOME" "$PIP_CACHE_DIR" "$TRITON_CACHE_DIR" "$MODEL_DIR" 2>/dev/null || true
 export TOKENIZERS_PARALLELISM=false
 
 if [ -f .env ]; then
