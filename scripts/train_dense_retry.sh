@@ -1,13 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=embed-train-dense
+#SBATCH --job-name=embed-train-dense-retry
 #SBATCH --partition=gpu-medium
 #SBATCH --gres=gpu:nvidia_h200_nvl:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=120G
 #SBATCH --time=48:00:00
-#SBATCH --output=log/train_dense_%A_%a.out
-#SBATCH --error=log/train_dense_%A_%a.err
+#SBATCH --output=log/train_dense_retry_%A_%a.out
+#SBATCH --error=log/train_dense_retry_%A_%a.err
 #SBATCH --array=0-8
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 MODELS=(
     "Hanno-Labs/dinghy-law-8b-v1"
@@ -23,7 +25,7 @@ MODELS=(
 
 MODEL=${MODELS[$SLURM_ARRAY_TASK_ID]}
 
-echo "Array task $SLURM_ARRAY_TASK_ID — Fine-tuning: $MODEL"
+echo "Array task $SLURM_ARRAY_TASK_ID — Fine-tuning (retry): $MODEL"
 echo "Node: $(hostname) | GPUs: ${CUDA_VISIBLE_DEVICES:-?}"
 
 source scripts/_env.sh
@@ -31,5 +33,5 @@ source scripts/_env.sh
 python -m experiments.training.train_dense_paragraph --model_name="$MODEL" \
     --training_file_path=data/data_splits/training/ --training_file=anchor_positive_W3.tsv \
     --eval_file_path=data/data_splits/training/ --eval_file=eval_positive_negative_W3.tsv \
-    --run_alias=positive_negative_W3 --batch_size=4 --eval_batch_size=4 \
+    --run_alias=positive_negative_W3 --batch_size=1 --eval_batch_size=1 \
     --output_base="$MODEL_DIR"

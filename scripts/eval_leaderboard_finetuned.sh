@@ -7,7 +7,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --output=log/eval_finetuned_%A_%a.out
 #SBATCH --error=log/eval_finetuned_%A_%a.err
-#SBATCH --array=0-9
+#SBATCH --array=0-8
 
 SCRATCH_MODELS="${MODEL_DIR:-/scratch/hpc/41/dolamull/uk-case-retrieval}/models"
 
@@ -17,7 +17,6 @@ MODELS=(
     "$SCRATCH_MODELS/Hanno-Labs_dinghy-law-4b-v1_positive_negative_W3/final"
     "$SCRATCH_MODELS/Mira190_Euler-Legal-Embedding-V1_positive_negative_W3/final"
     "$SCRATCH_MODELS/infgrad_Jasper-Token-Compression-600M_positive_negative_W3/final"
-    "$SCRATCH_MODELS/Kingsoft-LLM_QZhou-Embedding_positive_negative_W3/final"
     "$SCRATCH_MODELS/Qwen_Qwen3-Embedding-8B_positive_negative_W3/final"
     "$SCRATCH_MODELS/annamodels_LGAI-Embedding-Preview_positive_negative_W3/final"
     "$SCRATCH_MODELS/Qwen_Qwen3-Embedding-4B_positive_negative_W3/final"
