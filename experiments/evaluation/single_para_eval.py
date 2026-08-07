@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 from datasets import load_dataset
-from sentence_transformers import SparseEncoder, util
+from sentence_transformers import util
 from tqdm import tqdm
 
 from util.eval_utils import recall_at_k, precision_at_k, f1_at_k, mean_average_precision
@@ -78,6 +78,7 @@ def run(arguments):
         from sentence_transformers import SentenceTransformer
         model = SentenceTransformer(arguments.model_name, trust_remote_code=True)
     else:
+        from sentence_transformers import SparseEncoder
         model = SparseEncoder(arguments.model_name, trust_remote_code=True)
 
     candidates = load_dataset(arguments.candidates_file_path, data_files=arguments.candidates_file)
