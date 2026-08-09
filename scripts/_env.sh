@@ -40,4 +40,7 @@ if [ -f .env ]; then
 fi
 [ -n "${HF_TOKEN:-}" ] && export HUGGING_FACE_HUB_TOKEN="${HF_TOKEN}"
 
+# Ensure transformers supports ministral3 and qwen3 architectures (requires >=4.51)
+pip install -q "transformers>=4.51.0"
+
 echo "env: $(python -V 2>&1) @ $(command -v python) | conda=${EMBED_ENV} | hf_token=$([ -n "${HF_TOKEN:-}" ] && echo set || echo unset)"

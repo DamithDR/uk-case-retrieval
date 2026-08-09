@@ -7,19 +7,16 @@
 #SBATCH --time=48:00:00
 #SBATCH --output=log/eval_zeroshot_retry_%A_%a.out
 #SBATCH --error=log/eval_zeroshot_retry_%A_%a.err
-#SBATCH --array=0-8
+#SBATCH --array=0-3
+
+# infgrad/Jasper-Token-Compression-600M removed — both 1P and 3P zeroshot results already exist
 
 # OOM fix: allow PyTorch to defragment GPU memory instead of failing
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 MODELS=(
-    "Hanno-Labs/dinghy-law-8b-v1"
-    "minetta/nemotron-3-embed-8b-legal"
-    "Hanno-Labs/dinghy-law-4b-v1"
     "Mira190/Euler-Legal-Embedding-V1"
-    "infgrad/Jasper-Token-Compression-600M"
     "Qwen/Qwen3-Embedding-8B"
-    "annamodels/LGAI-Embedding-Preview"
     "Qwen/Qwen3-Embedding-4B"
     "codefuse-ai/F2LLM-v2-8B"
 )
