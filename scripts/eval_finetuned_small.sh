@@ -7,19 +7,15 @@
 #SBATCH --time=12:00:00
 #SBATCH --output=log/eval_finetuned_small_%A_%a.out
 #SBATCH --error=log/eval_finetuned_small_%A_%a.err
-#SBATCH --array=0-2
+#SBATCH --array=0-1
 
 # Small models (<=4B) — V100 32GB sufficient for inference
-# 0: Hanno-Labs/dinghy-law-4b-v1
-# 1: infgrad/Jasper-Token-Compression-600M
-# 2: Qwen/Qwen3-Embedding-4B
-
-SCRATCH_MODELS="${MODEL_DIR:-/scratch/hpc/41/dolamull/uk-case-retrieval}/models/models"
+# 0: infgrad/Jasper-Token-Compression-600M
+# 1: Qwen/Qwen3-Embedding-4B
 
 MODELS=(
-    "$SCRATCH_MODELS/Hanno-Labs_dinghy-law-4b-v1_positive_negative_W3/final"
-    "$SCRATCH_MODELS/infgrad_Jasper-Token-Compression-600M_positive_negative_W3/final"
-    "$SCRATCH_MODELS/Qwen_Qwen3-Embedding-4B_positive_negative_W3/final"
+    "/scratch/hpc/41/dolamull/uk-case-retrieval/models/models/infgrad_Jasper-Token-Compression-600M_positive_negative_W3/final"
+    "/scratch/hpc/41/dolamull/uk-case-retrieval/models/models/Qwen_Qwen3-Embedding-4B_positive_negative_W3/final"
 )
 
 MODEL_NAME="${MODELS[$SLURM_ARRAY_TASK_ID]}"
