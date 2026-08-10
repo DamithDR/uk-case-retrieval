@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=embed-eval-finetuned-small
-#SBATCH --partition=gpu-short
-#SBATCH --gres=gpu:tesla_v100-pcie-32gb:1
+#SBATCH --partition=astro
+#SBATCH --gres=gpu:nvidia_l40s:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=80G
 #SBATCH --time=12:00:00
