@@ -7,21 +7,11 @@
 #SBATCH --time=48:00:00
 #SBATCH --output=log/train_dense_retry_%A_%a.out
 #SBATCH --error=log/train_dense_retry_%A_%a.err
-#SBATCH --array=0-3
-
-# Large/unknown models — H200 141GB needed for training optimizer states
-# 0: Mira190/Euler-Legal-Embedding-V1  (unknown size, H200 to be safe)
-# 1: Qwen/Qwen3-Embedding-8B
-# 2: Qwen/Qwen3-Embedding-4B           (4B training ~64GB with Adam states)
-# 3: codefuse-ai/F2LLM-v2-8B
-
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+#SBATCH --array=0-1
 
 MODELS=(
     "Mira190/Euler-Legal-Embedding-V1"
     "Qwen/Qwen3-Embedding-8B"
-    "Qwen/Qwen3-Embedding-4B"
-    "codefuse-ai/F2LLM-v2-8B"
 )
 
 MODEL=${MODELS[$SLURM_ARRAY_TASK_ID]}
