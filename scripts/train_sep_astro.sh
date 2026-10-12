@@ -1,4 +1,6 @@
 #!/bin/bash
+# SUPERSEDED by scripts/train_sep_h200.sh, which now trains all 8 models on H200.
+# Kept only for reference; scripts/submit_sep_1P_3P.sh no longer calls it.
 #SBATCH --job-name=sep-train-astro
 #SBATCH --partition=astro
 #SBATCH --gres=gpu:nvidia_l40s:1

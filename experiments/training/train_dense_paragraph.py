@@ -42,8 +42,31 @@ def truncate_dataset(example):
     return example
 
 
+def check_optim_available(optim):
+    """Fail fast if the requested optimizer needs a package that is not installed.
+
+    adamw_bnb_8bit is what makes the 7B+ models fit (fp32 AdamW moments are
+    ~8 bytes/param, which overruns a 141GB H200 on its own). bitsandbytes is an
+    optional dependency, and without this check a missing import only surfaces
+    once the Trainer builds the optimizer -- after model load and dataset
+    tokenisation, i.e. many GPU-minutes in.
+    """
+    if 'bnb' not in optim and '8bit' not in optim:
+        return
+    try:
+        import bitsandbytes  # noqa: F401
+    except ImportError as exc:
+        raise SystemExit(
+            "ERROR: optim=%r requires bitsandbytes, which is not installed in this "
+            "environment (%s). Either install it (pip install bitsandbytes) or "
+            "re-run with --optim=adamw_torch_fused -- noting that fp32 AdamW OOMs "
+            "for models above ~6.5B params even on a 141GB GPU." % (optim, exc)
+        )
+
+
 def run(arguments):
     print_gpu_memory("Start")
+    check_optim_available(arguments.optim)
     model = SentenceTransformer(arguments.model_name, trust_remote_code=True)
 
     if hasattr(model, 'tokenizer') and hasattr(model.tokenizer, 'model_max_length'):
@@ -84,7 +107,7 @@ def run(arguments):
         gradient_accumulation_steps=4,
         run_name=run_name,
         gradient_checkpointing=True,
-        optim="adamw_torch_fused",
+        optim=arguments.optim,
         max_grad_norm=1.0,
         dataloader_num_workers=0,
         dataloader_pin_memory=False,
@@ -136,6 +159,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=3)
     parser.add_argument('--learning_rate', type=float, default=2e-5)
     parser.add_argument('--run_alias', type=str, required=True)
+    parser.add_argument('--optim', type=str, default='adamw_torch_fused',
+                        help='HF optimizer name. adamw_bnb_8bit cuts optimizer state from '
+                             '~8 to ~2 bytes/param, which is what lets a 7B+ model fit an H200.')
     parser.add_argument('--output_base', type=str,
                         default=os.environ.get('MODEL_DIR', '/scratch/hpc/41/dolamull/uk-case-retrieval'),
                         help='Base directory on scratch for checkpoints and final models')

@@ -1,33 +1,43 @@
 #!/bin/bash
-# Single entry point: fine-tune all 8 models from instructions/ins separately
-# for the 1P and 3P settings, evaluate each on its own setting, and collect the
-# results — one command, fully chained by SLURM dependencies.
+# Single entry point: fine-tune the models from instructions/ins for the 1P
+# setting, evaluate each on 1P, and collect the results -- one command, chained
+# by SLURM dependencies.
 #
 #     bash scripts/submit_sep_1P_3P.sh
-#     DRY_RUN=1 bash scripts/submit_sep_1P_3P.sh     # print, don't submit
+#     DRY_RUN=1 bash scripts/submit_sep_1P_3P.sh     # print the plan, don't submit
 #
-# Pipeline (16 fine-tunes -> 16 evaluations -> 1 collect):
+# 1P ONLY. 3P is disabled in scripts/_models_sep.sh (SEP_WINDOWS=("W1")); every
+# array sizes itself off that list, so nothing here needs changing to turn 3P
+# back on.
 #
-#   train_sep_astro  array 0-7%4   astro / L40S 48GB  24h   4 models x W1,W3  (<=1B)
-#   train_sep_h200   array 0-7%4   gpu-medium / H200  48h   4 models x W1,W3  (>=4B)
-#   eval_sep         array 0-15%6  astro / L40S 48GB  24h   8 models x 1P,3P
-#   collect_sep                    astro (cpu only)   15m
+# Everything runs on H200 (gpu-medium). The earlier astro/L40S split caused
+# three of the previous run's five failures purely by being a 48GB card; 141GB
+# removes them without changing precision, batch size or data, so results stay
+# comparable with the fine-tunes that already succeeded.
 #
-# Dependencies use afterany, not afterok, and each eval task checks for its
-# checkpoint first — so one failed fine-tune cannot cancel the other 15
-# evaluations. collect_sep then reports whatever is missing.
+# SUBMITS ONLY WHAT IS MISSING. This script inspects scratch and results/ on the
+# login node and builds each --array= list from what is actually absent, so a
+# model that already has results is not submitted at all -- no task, no GPU
+# allocation, not even a no-op. The per-task skips inside the job scripts remain
+# as a backstop against races. Stages:
+#
+#   eval_sep  (pass 1)   score checkpoints already on disk -- NO dependency
+#   train_sep            fine-tune whatever has no checkpoint
+#   eval_sep  (pass 2)   score those, afterany:train
+#   collect_sep          merge, afterany both eval passes
+#
+# Pass 1 carries no dependency so an already-trained model is scored within
+# minutes rather than queueing behind fresh fine-tunes.
 #
 # Env overrides:
-#   DRY_RUN=1            print sbatch commands without submitting
+#   DRY_RUN=1            print the plan and sbatch commands without submitting
 #   LOGDIR=...           log destination                (default: log)
-#   TRAIN_SMALL_QUEUE=   override small-model partition (default: astro)
-#   TRAIN_SMALL_TIME=    override small-model walltime  (default: 24:00:00)
+#   TRAIN_QUEUE=         override training partition    (default: gpu-medium)
+#   TRAIN_TIME=          override training walltime     (default: 48:00:00)
 #   SEP_TRAIN_BS=n       training batch size            (default: 4, uniform)
-#
-# If a W3 small-model fine-tune hits the astro 24h wall, resubmit just that job
-# on an H200 with the longer queue:
-#   TRAIN_SMALL_QUEUE=gpu-medium TRAIN_SMALL_TIME=48:00:00 \
-#     bash scripts/submit_sep_1P_3P.sh
+#   THROTTLE=n           max concurrent array tasks     (default: 4 = H200 count)
+#   FORCE_RETRAIN=1      retrain even where a checkpoint exists
+#   FORCE_REEVAL=1       re-score even where results exist
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,9 +45,16 @@ cd "$(dirname "$0")/.."
 source scripts/_models_sep.sh
 
 LOGDIR="${LOGDIR:-log}"
+THROTTLE="${THROTTLE:-4}"
 mkdir -p "$LOGDIR" "results/${SEP_RESULTS_SUBDIR}"
 
+# Resolve MODEL_DIR the same way scripts/_env.sh does, but without sourcing it
+# (that would run a pip install, which has no business happening on a login node).
+: "${SCRATCH_DIR:=/scratch/hpc/41/dolamull}"
+: "${MODEL_DIR:=$SCRATCH_DIR/uk-case-retrieval/models}"
+
 dry() { [ "${DRY_RUN:-0}" = "1" ]; }
+join_by() { local IFS=,; echo "$*"; }
 
 submit() {
     local label="$1" script="$2"; shift 2
@@ -49,63 +66,125 @@ submit() {
     sbatch --parsable "$@" "$script"
 }
 
-echo "=== separate 1P / 3P fine-tuning + evaluation ==="
+echo "=== separate 1P fine-tuning + evaluation (all jobs on H200) ==="
 echo "models: $(sep_count)  |  windows: ${SEP_WINDOWS[*]}  |  train_bs: $SEP_TRAIN_BS"
-echo "LOGDIR=$LOGDIR  DRY_RUN=${DRY_RUN:-0}"
+echo "MODEL_DIR=$MODEL_DIR"
+echo "LOGDIR=$LOGDIR  THROTTLE=$THROTTLE  DRY_RUN=${DRY_RUN:-0}"
 echo
 
+if [ ! -d "$MODEL_DIR" ]; then
+    echo "WARNING: MODEL_DIR does not exist or is not visible from here:" >&2
+    echo "         $MODEL_DIR" >&2
+    echo "         Every checkpoint will look missing, so this would submit a" >&2
+    echo "         full retrain. Run this on the cluster, or set MODEL_DIR." >&2
+    echo >&2
+fi
+
+# --- work out what is actually missing ------------------------------------
+TRAIN_TASKS=(); EVAL_NOW=(); EVAL_AFTER=(); NOTHING=()
+NWIN=${#SEP_WINDOWS[@]}
 n=$(sep_count)
+
+row() { printf '  %-4s %-40s %-8s %s\n' "$1" "$2" "$3" "$4"; }
+row task model status action
+row ---- ---------------------------------------- -------- ------
+
 for ((i = 0; i < n; i++)); do
-    printf '  [%d] %-40s %-5s eval_bs=%s\n' "$i" "$(sep_model "$i")" "$(sep_class "$i")" "$(sep_eval_batch "$i")"
+    for ((w = 0; w < NWIN; w++)); do
+        task=$((i * NWIN + w))
+        window=${SEP_WINDOWS[$w]}
+        setting=$(sep_setting_for_window "$window")
+        model=$(sep_model "$i")
+        results="results/$(sep_eval_alias "$model" "$setting")_results.csv"
+        ckpt=$(sep_model_path "$model" "$window")
+
+        has_results=0; [ -s "$results" ] && has_results=1
+        has_ckpt=0;    [ -d "$ckpt" ]    && has_ckpt=1
+        [ "${FORCE_REEVAL:-0}"  = "1" ] && has_results=0
+        [ "${FORCE_RETRAIN:-0}" = "1" ] && has_ckpt=0
+
+        if [ "$has_results" = 1 ]; then
+            NOTHING+=("$task")
+            row "$task" "$model" scored "skip (results exist)"
+        elif [ "$has_ckpt" = 1 ]; then
+            EVAL_NOW+=("$task")
+            row "$task" "$model" trained "evaluate now"
+        else
+            TRAIN_TASKS+=("$task"); EVAL_AFTER+=("$task")
+            row "$task" "$model" missing "train + evaluate (optim=$(sep_optim "$i"))"
+        fi
+    done
 done
+
+echo
+echo "  to train: ${#TRAIN_TASKS[@]}   to evaluate: $(( ${#EVAL_NOW[@]} + ${#EVAL_AFTER[@]} ))   already done: ${#NOTHING[@]}"
 echo
 
-# 1. small models (<=1B) — astro / L40S
-echo ">>> training, small models (astro / L40S)..."
-ASTRO_ID=$(submit train-astro scripts/train_sep_astro.sh \
-    ${TRAIN_SMALL_QUEUE:+--partition="$TRAIN_SMALL_QUEUE"} \
-    ${TRAIN_SMALL_TIME:+--time="$TRAIN_SMALL_TIME"} \
-    --export=ALL,SEP_TRAIN_BS="$SEP_TRAIN_BS" \
-    --output="$LOGDIR/sep_train_astro_%A_%a.out" \
-    --error="$LOGDIR/sep_train_astro_%A_%a.err")
-echo "    job $ASTRO_ID  (array 0-7, 4 models x 2 windows)"
+if [ "${#TRAIN_TASKS[@]}" -eq 0 ] && [ "${#EVAL_NOW[@]}" -eq 0 ]; then
+    echo "Nothing to submit -- every model already has 1P results."
+    echo "Merge them with:  bash scripts/collect_sep.sh"
+    exit 0
+fi
 
-# 2. large models (>=4B) — gpu-medium / H200
-echo ">>> training, large models (gpu-medium / H200)..."
-H200_ID=$(submit train-h200 scripts/train_sep_h200.sh \
-    --export=ALL,SEP_TRAIN_BS="$SEP_TRAIN_BS" \
-    --output="$LOGDIR/sep_train_h200_%A_%a.out" \
-    --error="$LOGDIR/sep_train_h200_%A_%a.err")
-echo "    job $H200_ID  (array 0-7, 4 models x 2 windows)"
+DEPS=()
 
-# 3. evaluation — astro, after BOTH training arrays finish
-echo ">>> evaluation (astro / L40S, after $ASTRO_ID and $H200_ID)..."
-EVAL_ID=$(submit eval scripts/eval_sep.sh \
-    --dependency=afterany:"$ASTRO_ID":"$H200_ID" \
-    --output="$LOGDIR/sep_eval_%A_%a.out" \
-    --error="$LOGDIR/sep_eval_%A_%a.err")
-echo "    job $EVAL_ID  (array 0-15, 8 models x 2 settings)"
+# --- 1. score checkpoints that already exist (no dependency) ---------------
+if [ "${#EVAL_NOW[@]}" -gt 0 ]; then
+    echo ">>> evaluation pass 1 -- tasks $(join_by "${EVAL_NOW[@]}") (no dependency)..."
+    PASS1_ID=$(submit eval1 scripts/eval_sep.sh \
+        --array="$(join_by "${EVAL_NOW[@]}")%$THROTTLE" \
+        --export=ALL,FORCE_REEVAL="${FORCE_REEVAL:-0}" \
+        --output="$LOGDIR/sep_eval1_%A_%a.out" \
+        --error="$LOGDIR/sep_eval1_%A_%a.err")
+    echo "    job $PASS1_ID"
+    DEPS+=("$PASS1_ID")
+fi
 
-# 4. collect — merge per-model CSVs into the final named outputs
-echo ">>> collect (after $EVAL_ID)..."
+# --- 2. train what has no checkpoint --------------------------------------
+if [ "${#TRAIN_TASKS[@]}" -gt 0 ]; then
+    echo ">>> training -- tasks $(join_by "${TRAIN_TASKS[@]}") (gpu-medium / H200)..."
+    TRAIN_ID=$(submit train scripts/train_sep_h200.sh \
+        --array="$(join_by "${TRAIN_TASKS[@]}")%$THROTTLE" \
+        ${TRAIN_QUEUE:+--partition="$TRAIN_QUEUE"} \
+        ${TRAIN_TIME:+--time="$TRAIN_TIME"} \
+        --export=ALL,SEP_TRAIN_BS="$SEP_TRAIN_BS",FORCE_RETRAIN="${FORCE_RETRAIN:-0}" \
+        --output="$LOGDIR/sep_train_%A_%a.out" \
+        --error="$LOGDIR/sep_train_%A_%a.err")
+    echo "    job $TRAIN_ID"
+
+    echo ">>> evaluation pass 2 -- tasks $(join_by "${EVAL_AFTER[@]}") (after $TRAIN_ID)..."
+    PASS2_ID=$(submit eval2 scripts/eval_sep.sh \
+        --array="$(join_by "${EVAL_AFTER[@]}")%$THROTTLE" \
+        --dependency=afterany:"$TRAIN_ID" \
+        --export=ALL,FORCE_REEVAL="${FORCE_REEVAL:-0}" \
+        --output="$LOGDIR/sep_eval2_%A_%a.out" \
+        --error="$LOGDIR/sep_eval2_%A_%a.err")
+    echo "    job $PASS2_ID"
+    DEPS+=("$PASS2_ID")
+fi
+
+# --- 3. collect, after every evaluation that was submitted ----------------
+echo ">>> collect (after $(join_by "${DEPS[@]}"))..."
 COLLECT_ID=$(submit collect scripts/collect_sep.sh \
-    --dependency=afterany:"$EVAL_ID" \
+    --dependency=afterany:"$(IFS=:; echo "${DEPS[*]}")" \
     --output="$LOGDIR/sep_collect_%j.out" \
     --error="$LOGDIR/sep_collect_%j.err")
 echo "    job $COLLECT_ID"
 
 echo
 echo "=== submitted ==="
-echo "  train (small) : $ASTRO_ID"
-echo "  train (large) : $H200_ID"
-echo "  evaluate      : $EVAL_ID    after $ASTRO_ID, $H200_ID"
-echo "  collect       : $COLLECT_ID    after $EVAL_ID"
+[ -n "${PASS1_ID:-}" ] && echo "  evaluate (now)  : $PASS1_ID    tasks $(join_by "${EVAL_NOW[@]}")"
+[ -n "${TRAIN_ID:-}" ] && echo "  train           : $TRAIN_ID    tasks $(join_by "${TRAIN_TASKS[@]}")"
+[ -n "${PASS2_ID:-}" ] && echo "  evaluate (rest) : $PASS2_ID    after $TRAIN_ID"
+echo "  collect         : $COLLECT_ID"
 echo
 echo "Results when finished:"
 echo "  results/${SEP_OUT_PREFIX}_1P_results.csv"
-echo "  results/${SEP_OUT_PREFIX}_3P_results.csv"
 echo "  results/${SEP_OUT_PREFIX}_recall_summary.csv   <- R@1,5,10,20,50"
+echo
+echo "Partial results land in results/${SEP_RESULTS_SUBDIR}/ as each model finishes;"
+echo "run 'bash scripts/collect_sep.sh' on the login node any time to merge what exists."
 echo
 echo "Monitor:"
 echo "  squeue -u \$USER"
-echo "  tail -f $LOGDIR/sep_train_h200_${H200_ID}_*.out"
+echo "  grep -l FAILED $LOGDIR/sep_*.err"

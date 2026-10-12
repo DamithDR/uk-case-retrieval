@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=sep-collect
 #SBATCH --partition=astro
+#SBATCH --gres=gpu:nvidia_l40s:1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=00:15:00
@@ -8,15 +9,19 @@
 #SBATCH --error=log/sep_collect_%j.err
 
 # Merge the per-model evaluation CSVs from results/sep_runs/ into the final
-# named outputs for this run. Pure awk — no GPU, no python env needed, so it
-# also runs fine straight on a login node:
+# named outputs for this run.
+#
+# Pure awk: it needs no GPU and no python env. It nonetheless requests
+# gres=gpu:nvidia_l40s:1 above, because the astro partition rejects a
+# submission that names no gres -- and that unsatisfiable submission is why
+# the collect step never ran at all. The L40S then sits idle for the few
+# seconds of awk, so prefer the login node when you just want the tables now:
 #
 #     bash scripts/collect_sep.sh
 #
-# Outputs (results/):
+# Outputs (results/) -- one table per window in SEP_WINDOWS; 3P is disabled:
 #   finetuned_sep_1P_results.csv       full metrics, 1P models on 1P
-#   finetuned_sep_3P_results.csv       full metrics, 3P models on 3P
-#   finetuned_sep_recall_summary.csv   R@1,5,10,20,50 for both settings
+#   finetuned_sep_recall_summary.csv   R@1,5,10,20,50
 #
 # Re-runnable: it rebuilds the outputs from scratch each time, and if a model
 # was evaluated more than once it keeps only the most recent rows.
@@ -112,5 +117,5 @@ echo "=== Recall summary ==="
 column -s, -t < "$SUMMARY" 2>/dev/null || cat "$SUMMARY"
 echo
 echo "collected $((total - missing))/$total model-setting pairs"
-[ "$missing" -gt 0 ] && echo "NOTE: $missing missing — check log/sep_eval_*.err and log/sep_train_*.err"
+[ "$missing" -gt 0 ] && echo "NOTE: $missing missing — check log/sep_eval*.err and log/sep_train_*.err"
 exit 0
