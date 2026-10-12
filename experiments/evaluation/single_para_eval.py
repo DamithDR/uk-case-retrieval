@@ -81,6 +81,17 @@ def run(arguments):
         from sentence_transformers import SparseEncoder
         model = SparseEncoder(arguments.model_name, trust_remote_code=True)
 
+    # Fine-tuned checkpoints carry model_max_length=4096 from training, but a
+    # base model off the hub uses its own default -- up to 32k for the Qwen3
+    # family. Pinning it makes a zero-shot score comparable with the fine-tuned
+    # one for the same model, and bounds encoder memory. Unset: unchanged, so
+    # evaluations already run are unaffected.
+    if arguments.max_seq_length:
+        model.max_seq_length = arguments.max_seq_length
+        if hasattr(model, 'tokenizer'):
+            model.tokenizer.model_max_length = arguments.max_seq_length
+        print(f'max_seq_length pinned to {arguments.max_seq_length}')
+
     candidates = load_dataset(arguments.candidates_file_path, data_files=arguments.candidates_file)
     gold_data = load_dataset(arguments.gold_file_path, data_files=arguments.gold_file)
     corpus = candidates['train']['candidate']
@@ -105,5 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_type', type=str, default='sparse', choices=['sparse', 'dense'], help='sparse or dense model')
     parser.add_argument('--batch_size', type=int, default=8, help='encoding batch size')
     parser.add_argument('--run_alias', type=str, required=True, help='run_alias')
+    parser.add_argument('--max_seq_length', type=int, default=None,
+                        help='pin the encoder max sequence length (default: the model/checkpoint default)')
     arguments = parser.parse_args()
     run(arguments)

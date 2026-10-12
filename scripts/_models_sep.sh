@@ -48,12 +48,26 @@ SEP_TABLE=(
 #   W1 (anchor_positive_W1.tsv) -> 1P (candidates_1P.tsv / gold_1P.tsv)
 #   W3 (anchor_positive_W3.tsv) -> 3P (candidates_3P.tsv / gold_3P.tsv)
 #
-# 3P IS DISABLED. This run is 1P only, so W3 is not in SEP_WINDOWS and nothing
-# trains or evaluates it: the arrays size themselves off this list, and
-# collect_sep.sh only emits tables for the windows named here. The W3 data and
-# the mapping below are untouched, so re-enabling 3P later is exactly this:
-#     SEP_WINDOWS=("W1" "W3")
-SEP_WINDOWS=("W1")
+# 3P IS DISABLED BY DEFAULT. The main run is 1P only, so W3 is not in
+# SEP_WINDOWS and the pipeline neither trains nor evaluates it: the arrays size
+# themselves off this list, and collect_sep.sh only emits tables for the windows
+# named here. The W3 data and the mapping below are untouched.
+#
+# SEP_WINDOWS_OVERRIDE (a space-separated string, since bash arrays cannot be
+# exported through sbatch --export) replaces the list for one invocation. That
+# is how a single-model 3P run gets its results into a 3P table without
+# re-enabling 3P for everything:
+#     SEP_WINDOWS_OVERRIDE="W1 W3" bash scripts/collect_sep.sh
+#
+# Do NOT change the default to ("W1" "W3") while array jobs are queued. This
+# file is sourced at job *runtime*, not spooled by SLURM, so lengthening the
+# list renumbers every array task retroactively: a queued task 6 means
+# octen/W1 under one window and Jasper/W1 under two.
+if [ -n "${SEP_WINDOWS_OVERRIDE:-}" ]; then
+    read -r -a SEP_WINDOWS <<< "$SEP_WINDOWS_OVERRIDE"
+else
+    SEP_WINDOWS=("W1")
+fi
 sep_setting_for_window() { case "$1" in W1) echo "1P";; W3) echo "3P";; esac; }
 
 # Distinct run alias so this run does not overwrite the earlier
