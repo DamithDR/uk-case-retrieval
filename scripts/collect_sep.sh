@@ -27,7 +27,26 @@
 # was evaluated more than once it keeps only the most recent rows.
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+# Locate the repo root. Under sbatch, "$0" is SLURM's spooled copy of this
+# script in /var/spool/slurmd/jobNNN/slurm_script, so dirname "$0" says nothing
+# about where the repo is -- it resolves to /var/spool/slurmd and every relative
+# path below then fails. SLURM instead starts the job in the directory sbatch
+# was run from, which is what SLURM_SUBMIT_DIR holds and what the rest of this
+# pipeline already assumes is the repo root. The dirname branch is the fallback
+# for running this directly with bash.
+if [ -n "${SLURM_SUBMIT_DIR:-}" ] && [ -f "$SLURM_SUBMIT_DIR/scripts/_models_sep.sh" ]; then
+    cd "$SLURM_SUBMIT_DIR" || exit 1
+elif [ -f "$(dirname "$0")/_models_sep.sh" ]; then
+    cd "$(dirname "$0")/.." || exit 1
+fi
+
+# Fail with one clear message rather than a cascade of "command not found".
+if [ ! -f scripts/_models_sep.sh ]; then
+    echo "ERROR: cannot find the repo root (pwd=$PWD, \$0=$0)." >&2
+    echo "       Submit or run this from the repo root, e.g." >&2
+    echo "         cd /path/to/uk-case-retrieval && sbatch scripts/$(basename "$0")" >&2
+    exit 1
+fi
 
 source scripts/_models_sep.sh
 
